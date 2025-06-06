@@ -1,0 +1,87 @@
+# .goreleaser.yml
+project_name: hatch
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: hatch
+    main: ./cmd/hatch/main.go
+    binary: hatch
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w -X github.com/AryaLabsHQ/hatch/cmd.version={{.Version}}
+
+archives:
+  - id: hatch
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-dev"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+  groups:
+    - title: Features
+      regexp: "^feat"
+      order: 0
+    - title: Bug Fixes
+      regexp: "^fix"
+      order: 1
+    - title: Others
+      order: 999
+
+release:
+  github:
+    owner: AryaLabsHQ
+    name: hatch
+  draft: false
+  prerelease: auto
+  name_template: "{{.ProjectName}} v{{.Version}}"
+
+brews:
+  - name: hatch
+    repository:
+      owner: AryaLabsHQ
+      name: homebrew-tap
+      branch: main
+    folder: Formula
+    homepage: "https://github.com/AryaLabsHQ/hatch"
+    description: "Create and manage isolated Git worktrees for agentic workflows"
+    license: "MIT"
+    test: |
+      system "#{bin}/hatch", "--version"
+    install: |
+      bin.install "hatch"

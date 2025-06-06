@@ -35,6 +35,14 @@ coverage/
 dist/
 build/
 
+# Go binaries
+/hatch
+*.exe
+
+# Go test files
+coverage.out
+coverage.html
+
 # Node.js (if you add npm/pnpm tooling later)
 node_modules/
 pnpm-lock.yaml
@@ -48,6 +56,9 @@ __pycache__/
 *.pyd
 .Python
 venv/
-env/
 
 .claude/*.local.json
+
+.env
+
+.dev.vars
