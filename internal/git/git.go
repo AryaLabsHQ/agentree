@@ -15,7 +15,7 @@ import (
 type Repository struct {
 	// Root is the absolute path to the repository root
 	Root string
-	// RepoName is the name of the repository (e.g., "hatch")
+	// RepoName is the name of the repository (e.g., "agentree")
 	RepoName string
 }
 

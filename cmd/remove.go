@@ -15,8 +15,8 @@ var removeCmd = &cobra.Command{
 	Long: `Remove a Git worktree by branch name or path.
 
 You can specify either:
-- A branch name: hatch rm agent/feature-x
-- A worktree path: hatch rm ../myrepo-worktrees/agent-feature-x
+- A branch name: agentree rm agent/feature-x
+- A worktree path: agentree rm ../myrepo-worktrees/agent-feature-x
 
 Use -y to skip confirmation and force removal of dirty worktrees.
 Use -R to also delete the local branch after removing the worktree.`,

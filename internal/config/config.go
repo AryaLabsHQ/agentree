@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// Config holds hatch configuration
+// Config holds agentree configuration
 type Config struct {
 	PostCreateScripts []string
 	// Package manager specific overrides

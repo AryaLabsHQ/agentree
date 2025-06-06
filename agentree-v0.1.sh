@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # ----------------------------------------------------------------------------
-# hatch — create *or* remove isolated Git worktrees for agentic workflows
+# agentree — create *or* remove isolated Git worktrees for agentic workflows
 # ----------------------------------------------------------------------------
-#   hatch -b <name>   → create worktree on agent/<name>
-#   hatch rm <branch|path> [-y] [-R]  → remove worktree (and optionally branch)
+#   agentree -b <name>   → create worktree on agent/<name>
+#   agentree rm <branch|path> [-y] [-R]  → remove worktree (and optionally branch)
 # ----------------------------------------------------------------------------
 # CREATION FLAGS
 #   -b <name|branch>   Name after agent/ OR full branch path if it contains '/'
@@ -20,7 +20,7 @@
 #   -R                 Also delete the local branch after removing worktree
 # ----------------------------------------------------------------------------
 # INSTALL:
-#   chmod +x ~/bin/hatch && echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc
+#   chmod +x ~/bin/agentree && echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc
 # ----------------------------------------------------------------------------
 
 set -euo pipefail
@@ -86,8 +86,8 @@ run_post_scripts() {
 
 usage() {
   cat <<EOF
-Usage:  hatch -b <name> [options]        # create worktree
-        hatch rm <branch|path> [flags]  # remove worktree
+Usage:  agentree -b <name> [options]        # create worktree
+        agentree rm <branch|path> [flags]  # remove worktree
 
 Creation options:
   -b <name>        required; branch name (prefixes agent/ if no slash)
@@ -130,7 +130,7 @@ if [[ $subcmd == "remove" ]]; then
   done
   shift $((OPTIND-1))
   target="${1:-}"
-  [[ -z $target ]] && { echo "❌  hatch rm <branch|path> required" >&2; usage; }
+  [[ -z $target ]] && { echo "❌  agentree rm <branch|path> required" >&2; usage; }
 
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     echo "❌  Not inside a Git repo" >&2; exit 1; fi
@@ -168,7 +168,7 @@ branch=""; base=""; push=false; pr=false; custom_dest=""; copy_env=false
 run_setup=false; custom_scripts=()
 
 # Load global config
-load_config "$HOME/.config/hatch/config"
+load_config "$HOME/.config/agentree/config"
 
 while getopts "b:f:prd:esS:h" opt; do
   case $opt in
@@ -241,7 +241,7 @@ if [[ ${#custom_scripts[@]} -gt 0 ]]; then
 elif $run_setup; then
   # Load project config if exists
   POST_CREATE_SCRIPTS=()
-  load_config "$root/.hatchrc"
+  load_config "$root/.agentreerc"
   
   if [[ ${#POST_CREATE_SCRIPTS[@]} -gt 0 ]]; then
     # Use project-specific scripts

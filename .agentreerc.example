@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Example .hatchrc - Project-specific hatch configuration
-# Copy this to .hatchrc in your project root and customize
+# Example .agentreerc - Project-specific agentree configuration
+# Copy this to .agentreerc in your project root and customize
 
 # Post-create scripts to run after worktree creation
 # These take precedence over auto-detection

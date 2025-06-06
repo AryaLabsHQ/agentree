@@ -14,7 +14,7 @@ func TestCommandStructure(t *testing.T) {
 	}{
 		{
 			name:        "root command exists",
-			commandName: "hatch",
+			commandName: "agentree",
 			hasFlags:    []string{"branch", "env", "push"},
 		},
 		{
@@ -34,7 +34,7 @@ func TestCommandStructure(t *testing.T) {
 			var cmd *cobra.Command
 			
 			switch tt.commandName {
-			case "hatch":
+			case "agentree":
 				cmd = rootCmd
 			case "create":
 				cmd = createCmd

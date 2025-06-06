@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Example global hatch configuration
-# Copy this to ~/.config/hatch/config and customize
+# Example global agentree configuration
+# Copy this to ~/.config/agentree/config and customize
 
 # Default post-create script when no auto-detection matches
 DEFAULT_POST_CREATE="echo 'No package manager detected'"
@@ -11,4 +11,4 @@ NPM_SETUP="npm ci && npm run build"
 YARN_SETUP="yarn install --frozen-lockfile && yarn build"
 
 # You can add custom functions or variables here
-# that will be available to hatch
+# that will be available to agentree

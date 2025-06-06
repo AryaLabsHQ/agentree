@@ -36,7 +36,7 @@ dist/
 build/
 
 # Go binaries
-/hatch
+/agentree
 *.exe
 
 # Go test files
