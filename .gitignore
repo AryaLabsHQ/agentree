@@ -1,0 +1,51 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# Editor directories and files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+
+# Test coverage
+coverage/
+.coverage
+
+# Environment variables
+.env
+.env.local
+
+# Build outputs
+dist/
+build/
+
+# Node.js (if you add npm/pnpm tooling later)
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Python (if you add Python tooling later)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/

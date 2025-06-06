@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+# ----------------------------------------------------------------------------
+# hatch — create *or* remove isolated Git worktrees for agentic workflows
+# ----------------------------------------------------------------------------
+#   hatch -b <name>   → create worktree on agent/<name>
+#   hatch rm <branch|path> [-y] [-R]  → remove worktree (and optionally branch)
+# ----------------------------------------------------------------------------
+# CREATION FLAGS
+#   -b <name|branch>   Name after agent/ OR full branch path if it contains '/'
+#   -f <base>          Base branch to fork from (default: current HEAD)
+#   -p                 Push new branch to origin after creation
+#   -r                 Create a GitHub PR via gh CLI after push (implies -p)
+#   -d <dest>          Override destination directory
+#
+# REMOVAL FLAGS (after `rm` sub‑command)
+#   -y                 No‑prompt force removal (implies --force to Git)
+#   -R                 Also delete the local branch after removing worktree
+# ----------------------------------------------------------------------------
+# INSTALL:
+#   chmod +x ~/bin/hatch && echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc
+# ----------------------------------------------------------------------------
+
+set -euo pipefail
+
+# ─── Helper ------------------------------------------------------------------
+usage() {
+  cat <<EOF
+Usage:  hatch -b <name> [options]        # create worktree
+        hatch rm <branch|path> [flags]  # remove worktree
+
+Creation options:
+  -b <name>        required; branch name (prefixes agent/ if no slash)
+  -f <base>        base branch (default: current HEAD)
+  -p               push branch to origin
+  -r               create GitHub PR (implies -p)
+  -d <dest>        custom destination path
+
+Removal flags (after 'rm'):
+  -y               no confirmation; force if dirty
+  -R               delete the local branch too
+EOF
+  exit 1
+}
+
+confirm() {
+  # $1 prompt
+  read -r -p "$1 [y/N] " ans; [[ $ans =~ ^[Yy]$ ]];
+}
+
+# ─── Sub‑command dispatch -----------------------------------------------------
+subcmd="create"
+if [[ "${1:-}" == "rm" || "${1:-}" == "remove" ]]; then
+  subcmd="remove"; shift; fi
+
+# ──────────────────────────────────────────────────────────────────────────────
+if [[ $subcmd == "remove" ]]; then
+  # Default removal flags
+  force=""; del_branch=false
+  # Parse flags: -y (force) -R (delete branch)
+  while getopts "yR" opt; do
+    case $opt in
+      y) force="--force" ;;
+      R) del_branch=true ;;
+      *) usage ;;
+    esac
+  done
+  shift $((OPTIND-1))
+  target="${1:-}"
+  [[ -z $target ]] && { echo "❌  hatch rm <branch|path> required" >&2; usage; }
+
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌  Not inside a Git repo" >&2; exit 1; fi
+
+  # Determine path and branch
+  path=""; branch=""
+  if [[ -d $target ]]; then
+    path=$(cd "$target" && pwd)
+    branch=$(git worktree list --porcelain |
+      awk -v p="$path" '$1=="worktree" && $2==p {getline; if($1=="branch") {sub("refs/heads/","",$2); print $2}}')
+  else
+    branch="$target"
+    path=$(git worktree list --porcelain |
+      awk -v b="$branch" '$1=="worktree" {p=$2} $1=="branch" {sub("refs/heads/","",$2); if($2==b) print p}')
+  fi
+
+  [[ -z $path ]] && { echo "❌  Worktree not found for $target" >&2; exit 1; }
+
+  # Confirm if not forced
+  if [[ -z $force ]] && ! confirm "Remove worktree at $path?"; then exit 0; fi
+
+  git worktree remove $force "$path"
+  echo "✅  Removed worktree $path"
+
+  if $del_branch && [[ -n $branch ]]; then
+    git branch -D "$branch" || true
+    echo "🗑️   Deleted branch $branch"
+  fi
+  exit 0
+fi
+
+# ─── Creation path -----------------------------------------------------------
+# Defaults
+branch=""; base=""; push=false; pr=false; custom_dest=""
+
+while getopts "b:f:prd:h" opt; do
+  case $opt in
+    b) branch="$OPTARG" ;;
+    f) base="$OPTARG" ;;
+    p) push=true ;;
+    r) pr=true; push=true ;;
+    d) custom_dest="$OPTARG" ;;
+    h|*) usage ;;
+  esac
+done
+
+[[ -z $branch ]] && { echo "❌  -b <name> is required" >&2; usage; }
+
+# Prefix agent/ if no slash
+if [[ $branch != */* ]]; then
+  branch="agent/$branch"
+fi
+
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "❌  Run this inside a Git repository" >&2; exit 1; fi
+
+git fetch --prune
+
+root=$(git rev-parse --show-toplevel)
+repo=$(basename "$root")
+parent=$(dirname "$root")
+workdir="${parent}/${repo}-worktrees"
+mkdir -p "$workdir"
+
+# Resolve base
+if [[ -z $base ]]; then
+  base=$(git symbolic-ref --quiet --short HEAD || git rev-parse --short HEAD)
+fi
+
+san_branch="${branch//\//-}"
+dest="${custom_dest:-${workdir}/${san_branch}}"
+
+if [[ -d $dest ]]; then
+  echo "❌  Destination $dest exists" >&2; exit 1; fi
+if git show-ref --verify --quiet "refs/heads/$branch"; then
+  echo "❌  Branch $branch already exists" >&2; exit 1; fi
+
+# Create branch + worktree
+
+git branch "$branch" "$base"
+git worktree add "$dest" "$branch"
+
+echo "✅  Worktree ready:"
+echo "    path   $dest"
+echo "    branch $branch (from $base)"
+
+if $push; then
+  git -C "$dest" push -u origin "$branch"
+fi
+if $pr; then
+  if command -v gh >/dev/null 2>&1; then
+    gh -C "$dest" pr create --fill --web
+  else
+    echo "⚠️  gh CLI not found; skipping PR creation" >&2
+  fi
+fi
+
