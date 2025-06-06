@@ -1,4 +1,4 @@
-module github.com/AryaLabsHQ/hatch
+module github.com/AryaLabsHQ/agentree
 
 go 1.24.3
 

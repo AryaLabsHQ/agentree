@@ -1,8 +1,8 @@
 .PHONY: build test clean install run lint
 
 # Binary name
-BINARY_NAME=hatch
-MAIN_PATH=./cmd/hatch
+BINARY_NAME=agentree
+MAIN_PATH=./cmd/agentree
 
 # Build the binary
 build:

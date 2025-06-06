@@ -1,37 +1,37 @@
-// Package cmd contains all CLI commands for hatch
+// Package cmd contains all CLI commands for agentree
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/spf13/cobra"
 )
 
 var (
 	// version is set by goreleaser at build time
 	version = "dev"
-	
+
 	// Style definitions
 	successStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("42")).
-		Bold(true)
-	
+			Foreground(lipgloss.Color("42")).
+			Bold(true)
+
 	errorStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("196")).
-		Bold(true)
-	
+			Foreground(lipgloss.Color("196")).
+			Bold(true)
+
 	infoStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("12")).
-		Italic(true)
-	
+			Foreground(lipgloss.Color("12")).
+			Italic(true)
+
 	labelStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("241"))
+			Foreground(lipgloss.Color("241"))
 )
 
 // rootCmd represents the base command
 var rootCmd = &cobra.Command{
-	Use:   "hatch",
-	Short: "Create and manage isolated Git worktrees for agentic workflows",
-	Long: `hatch is a tool for creating and managing isolated Git worktrees.
+	Use:   "agentree",
+	Short: "Create and manage isolated Git worktrees for AI coding agents",
+	Long: `agentree is a tool for creating and managing isolated Git worktrees.
 	
 It simplifies working with multiple AI coding agents by creating isolated
 branches and directories for concurrent work without conflicts.`,

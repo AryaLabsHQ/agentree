@@ -88,9 +88,9 @@ jobs:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
         run: |
-          go build -v -o ./dist/hatch-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }} ./cmd/hatch
+          go build -v -o ./dist/agentree-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }} ./cmd/agentree
 
       - name: Test binary
         if: matrix.os == 'linux' && matrix.arch == 'amd64'
         run: |
-          ./dist/hatch-linux-amd64 --version
+          ./dist/agentree-linux-amd64 --version

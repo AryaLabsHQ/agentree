@@ -1,12 +1,12 @@
-# hatch
+# agentree 🌳🤖
 
 Create and manage isolated Git worktrees for AI coding agents.
 
 ## Overview
 
-`hatch` simplifies working with multiple AI coding agents (like Codex and Claude Code) by creating isolated Git worktrees. Each agent gets its own branch and directory, allowing concurrent work without conflicts.
+`agentree` simplifies working with multiple AI coding agents (like Cursor, Claude Code, and GitHub Copilot) by creating isolated Git worktrees. Each agent gets its own branch and directory, allowing concurrent work without conflicts.
 
-## Why hatch?
+## Why agentree?
 
 When working with AI coding assistants, you often need to:
 - Create isolated environments for different tasks
@@ -14,7 +14,7 @@ When working with AI coding assistants, you often need to:
 - Maintain clean separation between AI-generated changes
 - Easily clean up after experiments
 
-`hatch` automates this workflow with a single command.
+`agentree` automates this workflow with a single command.
 
 ## Installation
 
@@ -22,18 +22,18 @@ When working with AI coding assistants, you often need to:
 
 ```bash
 brew tap AryaLabsHQ/tap
-brew install hatch
+brew install agentree
 ```
 
 ### Download Pre-built Binary
 
-Download the latest release for your platform from the [releases page](https://github.com/AryaLabsHQ/hatch/releases).
+Download the latest release for your platform from the [releases page](https://github.com/AryaLabsHQ/agentree/releases).
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/AryaLabsHQ/hatch.git
-cd hatch
+git clone https://github.com/AryaLabsHQ/agentree.git
+cd agentree
 make build
 make install
 ```
@@ -44,50 +44,50 @@ make install
 
 ```bash
 # Interactive mode - select base branch from list
-hatch -i
+agentree -i
 
 # Create worktree with specific branch name
-hatch -b feature-x
+agentree -b feature-x
 
 # Create from specific base branch
-hatch -b feature-x -f main
+agentree -b feature-x -f main
 
 # Push to origin after creation
-hatch -b feature-x -p
+agentree -b feature-x -p
 
 # Create PR after push (requires gh CLI)
-hatch -b feature-x -r
+agentree -b feature-x -r
 
 # Custom destination
-hatch -b feature-x -d ~/projects/custom-dir
+agentree -b feature-x -d ~/projects/custom-dir
 
 # Copy .env and .dev.vars files from source
-hatch -b feature-x -e
+agentree -b feature-x -e
 
 # Auto-detect and run setup (pnpm install, npm install, etc.)
-hatch -b feature-x -s
+agentree -b feature-x -s
 
 # Run custom post-create scripts
-hatch -b feature-x -S "pnpm install --frozen-lockfile" -S "pnpm test"
+agentree -b feature-x -S "pnpm install --frozen-lockfile" -S "pnpm test"
 
 # Combine: copy env files and run setup
-hatch -b feature-x -e -s
+agentree -b feature-x -e -s
 ```
 
 ### Remove a worktree
 
 ```bash
 # Remove by branch name
-hatch rm agent/feature-x
+agentree rm agent/feature-x
 
 # Remove by path
-hatch rm ../myrepo-worktrees/agent-feature-x
+agentree rm ../myrepo-worktrees/agent-feature-x
 
 # Force removal (no confirmation)
-hatch rm agent/feature-x -y
+agentree rm agent/feature-x -y
 
 # Also delete the branch
-hatch rm agent/feature-x -R
+agentree rm agent/feature-x -R
 ```
 
 ## Features
@@ -104,12 +104,12 @@ hatch rm agent/feature-x -R
 
 ## Configuration
 
-### Project Configuration (`.hatchrc`)
+### Project Configuration (`.agentreerc`)
 
-Create a `.hatchrc` file in your project root to define custom post-create scripts:
+Create a `.agentreerc` file in your project root to define custom post-create scripts:
 
 ```bash
-# .hatchrc
+# .agentreerc
 POST_CREATE_SCRIPTS=(
   "pnpm install"
   "pnpm build"
@@ -117,12 +117,12 @@ POST_CREATE_SCRIPTS=(
 )
 ```
 
-### Global Configuration (`~/.config/hatch/config`)
+### Global Configuration (`~/.config/agentree/config`)
 
 Create a global config for user-wide defaults:
 
 ```bash
-# ~/.config/hatch/config
+# ~/.config/agentree/config
 # Override auto-detected scripts
 PNPM_SETUP="pnpm install --frozen-lockfile && pnpm build"
 NPM_SETUP="npm ci && npm run build"
@@ -133,7 +133,7 @@ DEFAULT_POST_CREATE="echo 'Ready to work!'"
 
 ### Auto-Detection
 
-When using `-s` flag, hatch automatically detects and runs appropriate setup commands:
+When using `-s` flag, agentree automatically detects and runs appropriate setup commands:
 
 - **pnpm**: `pnpm install` + `pnpm build` (if build script exists)
 - **npm**: `npm install` + `npm run build` (if build script exists)
@@ -147,27 +147,27 @@ When using `-s` flag, hatch automatically detects and runs appropriate setup com
 
 ```bash
 # AI agent working on authentication
-hatch -b auth-system
+agentree -b auth-system
 
 # Interactive mode to choose base branch
-hatch -i
+agentree -i
 
 # AI agent fixing bugs, push when ready
-hatch -b bugfix-123 -p
+agentree -b bugfix-123 -p
 
 # Quick experiment, create PR immediately
-hatch -b experiment-ml -r
+agentree -b experiment-ml -r
 
 # Cleanup after work is merged
-hatch rm agent/auth-system -R
+agentree rm agent/auth-system -R
 ```
 
 ## Development
 
 ```bash
 # Clone the repository
-git clone https://github.com/AryaLabsHQ/hatch.git
-cd hatch
+git clone https://github.com/AryaLabsHQ/agentree.git
+cd agentree
 
 # Run tests
 make test
@@ -182,7 +182,7 @@ make run
 ## Version History
 
 - **v1.0+**: Complete rewrite in Go with interactive mode, better performance, and cross-platform support
-- **v0.1**: Original bash implementation (available as `hatch-v0.1.sh` for reference)
+- **v0.1**: Original bash implementation (available as `agentree-v0.1.sh` for reference)
 
 ### Why the rewrite?
 

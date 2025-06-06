@@ -11,14 +11,14 @@ import (
 func TestLoadProjectConfig(t *testing.T) {
 	tests := []struct {
 		name       string
-		hatchrc    string
+		agentreerc string
 		expected   Config
 		wantErr    bool
 	}{
 		{
-			name: "valid hatchrc with scripts",
-			hatchrc: `#!/bin/bash
-# Project-specific hatch configuration
+			name: "valid agentreerc with scripts",
+			agentreerc: `#!/bin/bash
+# Project-specific agentree configuration
 
 POST_CREATE_SCRIPTS=(
   "pnpm install"
@@ -28,15 +28,15 @@ POST_CREATE_SCRIPTS=(
 			expected: Config{
 				PostCreateScripts: []string{
 					"pnpm install",
-					"pnpm build", 
+					"pnpm build",
 					"cp .env.example .env",
 				},
 			},
 			wantErr: false,
 		},
 		{
-			name: "hatchrc with comments and empty lines",
-			hatchrc: `#!/bin/bash
+			name: "agentreerc with comments and empty lines",
+			agentreerc: `#!/bin/bash
 # This is a comment
 
 POST_CREATE_SCRIPTS=(
@@ -56,8 +56,8 @@ POST_CREATE_SCRIPTS=(
 			wantErr: false,
 		},
 		{
-			name: "hatchrc with different quote styles",
-			hatchrc: `POST_CREATE_SCRIPTS=(
+			name: "agentreerc with different quote styles",
+			agentreerc: `POST_CREATE_SCRIPTS=(
   "double quotes"
   'single quotes'
   no_quotes_needed
@@ -72,14 +72,14 @@ POST_CREATE_SCRIPTS=(
 			wantErr: false,
 		},
 		{
-			name:     "no hatchrc file",
-			hatchrc:  "", // special case - won't create file
-			expected: Config{},
-			wantErr:  false,
+			name:       "no agentreerc file",
+			agentreerc: "", // special case - won't create file
+			expected:   Config{},
+			wantErr:    false,
 		},
 		{
-			name: "empty hatchrc",
-			hatchrc: `#!/bin/bash
+			name: "empty agentreerc",
+			agentreerc: `#!/bin/bash
 # Empty config`,
 			expected: Config{},
 			wantErr:  false,
@@ -90,11 +90,11 @@ POST_CREATE_SCRIPTS=(
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
 
-			// Create .hatchrc if content provided
-			if tt.hatchrc != "" {
-				hatchrcPath := filepath.Join(tmpDir, ".hatchrc")
-				if err := os.WriteFile(hatchrcPath, []byte(tt.hatchrc), 0644); err != nil {
-					t.Fatalf("Failed to create .hatchrc: %v", err)
+			// Create .agentreerc if content provided
+			if tt.agentreerc != "" {
+				agentreercPath := filepath.Join(tmpDir, ".agentreerc")
+				if err := os.WriteFile(agentreercPath, []byte(tt.agentreerc), 0644); err != nil {
+					t.Fatalf("Failed to create .agentreerc: %v", err)
 				}
 			}
 
@@ -134,14 +134,14 @@ func TestLoadGlobalConfig(t *testing.T) {
 	}{
 		{
 			name: "valid global config",
-			config: `# Global hatch configuration
+			config: `# Global agentree configuration
 PNPM_SETUP="pnpm install --frozen-lockfile && pnpm build"
 NPM_SETUP="npm ci && npm run build"
 YARN_SETUP="yarn install --frozen-lockfile && yarn build"
 DEFAULT_POST_CREATE="echo 'No package manager detected'"`,
 			expected: Config{
 				PnpmSetup:    "pnpm install --frozen-lockfile && pnpm build",
-				NpmSetup:     "npm ci && npm run build", 
+				NpmSetup:     "npm ci && npm run build",
 				YarnSetup:    "yarn install --frozen-lockfile && yarn build",
 				DefaultSetup: "echo 'No package manager detected'",
 			},
@@ -190,7 +190,7 @@ YARN_SETUP="yarn"`,
 
 			// Create config file if content provided
 			if tt.config != "" {
-				configDir := filepath.Join(tmpHome, ".config", "hatch")
+				configDir := filepath.Join(tmpHome, ".config", "agentree")
 				if err := os.MkdirAll(configDir, 0755); err != nil {
 					t.Fatalf("Failed to create config dir: %v", err)
 				}
@@ -230,23 +230,23 @@ YARN_SETUP="yarn"`,
 // TestConfigParsing tests edge cases in config parsing
 func TestConfigParsing(t *testing.T) {
 	tests := []struct {
-		name     string
-		line     string
-		wantKey  string
-		wantVal  string
-		valid    bool
+		name    string
+		line    string
+		wantKey string
+		wantVal string
+		valid   bool
 	}{
 		{
 			name:    "simple assignment",
 			line:    `KEY="value"`,
 			wantKey: "KEY",
-			wantVal: "value", 
+			wantVal: "value",
 			valid:   true,
 		},
 		{
 			name:    "spaces around equals",
 			line:    `KEY = "value"`,
-			wantKey: "KEY", 
+			wantKey: "KEY",
 			wantVal: "value",
 			valid:   true,
 		},
@@ -285,7 +285,7 @@ func TestConfigParsing(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// This tests the parsing logic used in LoadGlobalConfig
 			line := tt.line
-			
+
 			// Skip empty lines and comments
 			if line == "" || line[0] == '#' {
 				if tt.valid {
@@ -324,4 +324,3 @@ func TestConfigParsing(t *testing.T) {
 		})
 	}
 }
-

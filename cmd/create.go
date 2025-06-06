@@ -6,26 +6,26 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	
+
+	"github.com/AryaLabsHQ/agentree/internal/config"
+	"github.com/AryaLabsHQ/agentree/internal/detector"
+	"github.com/AryaLabsHQ/agentree/internal/env"
+	"github.com/AryaLabsHQ/agentree/internal/git"
+	"github.com/AryaLabsHQ/agentree/internal/scripts"
+	"github.com/AryaLabsHQ/agentree/internal/tui"
 	"github.com/spf13/cobra"
-	"github.com/AryaLabsHQ/hatch/internal/config"
-	"github.com/AryaLabsHQ/hatch/internal/detector"
-	"github.com/AryaLabsHQ/hatch/internal/env"
-	"github.com/AryaLabsHQ/hatch/internal/git"
-	"github.com/AryaLabsHQ/hatch/internal/scripts"
-	"github.com/AryaLabsHQ/hatch/internal/tui"
 )
 
 // Create command flags
 var (
-	branch      string
-	base        string
-	push        bool
-	pr          bool
-	dest        string
-	copyEnv     bool
-	runSetup    bool
-	interactive bool
+	branch        string
+	base          string
+	push          bool
+	pr            bool
+	dest          string
+	copyEnv       bool
+	runSetup      bool
+	interactive   bool
 	customScripts []string
 )
 
@@ -42,7 +42,7 @@ The worktree is created in a sibling directory named <repo>-worktrees.`,
 
 func init() {
 	rootCmd.AddCommand(createCmd)
-	
+
 	// Define flags
 	createCmd.Flags().StringVarP(&branch, "branch", "b", "", "Branch name (required)")
 	createCmd.Flags().StringVarP(&base, "from", "f", "", "Base branch to fork from (default: current branch)")
@@ -53,7 +53,7 @@ func init() {
 	createCmd.Flags().BoolVarP(&runSetup, "setup", "s", false, "Run setup scripts (auto-detect or from config)")
 	createCmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "Interactive mode for branch selection")
 	createCmd.Flags().StringArrayVarP(&customScripts, "script", "S", nil, "Custom post-create script (can be used multiple times)")
-	
+
 	// Make branch required unless in interactive mode
 	_ = createCmd.MarkFlagRequired("branch")
 }
@@ -70,7 +70,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&runSetup, "setup", "s", false, "Run setup scripts")
 	rootCmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "Interactive mode")
 	rootCmd.Flags().StringArrayVarP(&customScripts, "script", "S", nil, "Custom post-create script")
-	
+
 	// If root command is called with flags, run create
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		// Check if any create flags are set
@@ -89,7 +89,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error: %v", err)))
 		return err
 	}
-	
+
 	// Handle interactive mode
 	if interactive {
 		branches, err := repo.ListBranches()
@@ -97,13 +97,13 @@ func runCreate(cmd *cobra.Command, args []string) error {
 			fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error listing branches: %v", err)))
 			return err
 		}
-		
+
 		selectedBranch, err := tui.RunBranchSelector(branches)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error: %v", err)))
 			return err
 		}
-		
+
 		// Check if it's an existing branch
 		for _, b := range branches {
 			if b == selectedBranch {
@@ -111,26 +111,26 @@ func runCreate(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("existing branch selected")
 			}
 		}
-		
+
 		branch = selectedBranch
 	}
-	
+
 	// Validate branch
 	if branch == "" {
 		fmt.Fprintln(os.Stderr, errorStyle.Render("Error: -b/--branch is required"))
 		return fmt.Errorf("branch name required")
 	}
-	
+
 	// If -r is set, also set -p
 	if pr {
 		push = true
 	}
-	
+
 	// Add agent/ prefix if no slash
 	if !strings.Contains(branch, "/") {
 		branch = "agent/" + branch
 	}
-	
+
 	// Set default base branch if not specified
 	if base == "" {
 		base, err = repo.CurrentBranch()
@@ -139,7 +139,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
-	
+
 	// Determine destination directory
 	if dest == "" {
 		worktreeDir := repo.GetDefaultWorktreeDir()
@@ -147,28 +147,28 @@ func runCreate(cmd *cobra.Command, args []string) error {
 			fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error creating worktree directory: %v", err)))
 			return err
 		}
-		
+
 		sanitized := strings.ReplaceAll(branch, "/", "-")
 		dest = filepath.Join(worktreeDir, sanitized)
 	}
-	
+
 	// Check if destination already exists
 	if _, err := os.Stat(dest); err == nil {
 		fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error: Destination %s already exists", dest)))
 		return fmt.Errorf("destination exists")
 	}
-	
+
 	// Create the worktree
 	fmt.Println(infoStyle.Render("Creating worktree..."))
 	if err := repo.CreateWorktree(branch, base, dest); err != nil {
 		fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error: %v", err)))
 		return err
 	}
-	
+
 	fmt.Println(successStyle.Render("✅ Worktree ready:"))
 	fmt.Printf("    %s %s\n", labelStyle.Render("path"), dest)
 	fmt.Printf("    %s %s (from %s)\n", labelStyle.Render("branch"), branch, base)
-	
+
 	// Copy environment files if requested
 	if copyEnv {
 		copiedFiles, err := env.CopyEnvFiles(repo.Root, dest)
@@ -180,14 +180,14 @@ func runCreate(cmd *cobra.Command, args []string) error {
 			}
 		}
 	}
-	
+
 	// Run post-create scripts if requested
 	if runSetup || len(customScripts) > 0 {
 		projectConfig, _ := config.LoadProjectConfig(repo.Root)
 		globalConfig, _ := config.LoadGlobalConfig()
-		
+
 		detectedScripts := detector.DetectSetupCommands(dest)
-		
+
 		var globalOverride string
 		if len(detectedScripts) > 0 {
 			if strings.Contains(detectedScripts[0], "pnpm") && globalConfig.PnpmSetup != "" {
@@ -200,21 +200,21 @@ func runCreate(cmd *cobra.Command, args []string) error {
 				globalOverride = globalConfig.DefaultSetup
 			}
 		}
-		
+
 		scriptsToRun := scripts.DetermineScripts(
 			customScripts,
 			projectConfig.PostCreateScripts,
 			detectedScripts,
 			globalOverride,
 		)
-		
+
 		runner := scripts.NewRunner(dest)
 		if err := runner.RunScripts(scriptsToRun); err != nil {
 			// Log error but don't fail the command
 			fmt.Fprintf(os.Stderr, "Warning: Some post-create scripts failed: %v\n", err)
 		}
 	}
-	
+
 	// Push to origin if requested
 	if push {
 		fmt.Println(infoStyle.Render("Pushing to origin..."))
@@ -225,7 +225,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		}
 		fmt.Println(successStyle.Render("✓ Pushed to origin"))
 	}
-	
+
 	// Create PR if requested
 	if pr {
 		fmt.Println(infoStyle.Render("Creating GitHub PR..."))
@@ -238,6 +238,6 @@ func runCreate(cmd *cobra.Command, args []string) error {
 			}
 		}
 	}
-	
+
 	return nil
 }

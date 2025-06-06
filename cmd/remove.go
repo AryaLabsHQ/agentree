@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
-	
+
+	"github.com/AryaLabsHQ/agentree/internal/git"
 	"github.com/spf13/cobra"
-	"github.com/AryaLabsHQ/hatch/internal/git"
 )
 
 // removeCmd represents the remove command
@@ -31,12 +31,12 @@ var (
 
 func init() {
 	rootCmd.AddCommand(removeCmd)
-	
+
 	// Also add 'remove' as an alias
 	removeAlias := *removeCmd
 	removeAlias.Use = "remove [branch|path]"
 	rootCmd.AddCommand(&removeAlias)
-	
+
 	// Define flags
 	removeCmd.Flags().BoolVarP(&force, "yes", "y", false, "Force removal without confirmation")
 	removeCmd.Flags().BoolVarP(&deleteBranch, "delete-branch", "R", false, "Also delete the local branch")
@@ -44,21 +44,21 @@ func init() {
 
 func runRemove(cmd *cobra.Command, args []string) error {
 	target := args[0]
-	
+
 	// Create repository instance
 	repo, err := git.NewRepository()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error: %v", err)))
 		return err
 	}
-	
+
 	// Find the worktree
 	info, err := repo.FindWorktree(target)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error: %v", err)))
 		return err
 	}
-	
+
 	// Confirm if not forced
 	if !force {
 		fmt.Printf("Remove worktree at %s? [y/N] ", info.Path)
@@ -72,14 +72,14 @@ func runRemove(cmd *cobra.Command, args []string) error {
 			return nil
 		}
 	}
-	
+
 	// Remove the worktree
 	if err := repo.RemoveWorktree(info.Path, force); err != nil {
 		fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error: %v", err)))
 		return err
 	}
 	fmt.Println(successStyle.Render(fmt.Sprintf("✅ Removed worktree %s", info.Path)))
-	
+
 	// Delete branch if requested
 	if deleteBranch && info.Branch != "" {
 		if err := repo.DeleteBranch(info.Branch); err != nil {
@@ -88,6 +88,6 @@ func runRemove(cmd *cobra.Command, args []string) error {
 			fmt.Println(successStyle.Render(fmt.Sprintf("🗑️  Deleted branch %s", info.Branch)))
 		}
 	}
-	
+
 	return nil
 }
