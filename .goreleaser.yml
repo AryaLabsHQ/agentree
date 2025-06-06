@@ -1,4 +1,6 @@
 # .goreleaser.yml
+version: 2
+
 project_name: hatch
 
 before:
@@ -44,7 +46,7 @@ checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  version_template: "{{ incpatch .Version }}-dev"
+  name_template: "{{ incpatch .Version }}-dev"
 
 changelog:
   sort: asc
@@ -77,7 +79,7 @@ brews:
       owner: AryaLabsHQ
       name: homebrew-tap
       branch: main
-    folder: Formula
+    directory: Formula
     homepage: "https://github.com/AryaLabsHQ/hatch"
     description: "Create and manage isolated Git worktrees for agentic workflows"
     license: "MIT"
