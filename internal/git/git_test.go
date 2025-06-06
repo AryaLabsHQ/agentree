@@ -14,16 +14,25 @@ func setupTestRepo(t *testing.T) (string, func()) {
 	// Create temp directory
 	tmpDir := t.TempDir()
 	
-	// Initialize git repo
-	cmd := exec.Command("git", "init")
+	// Initialize git repo with explicit default branch
+	cmd := exec.Command("git", "init", "-b", "main")
 	cmd.Dir = tmpDir
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to init git repo: %v", err)
 	}
 	
 	// Configure git user (required for commits)
-	exec.Command("git", "config", "user.name", "Test User").Dir = tmpDir
-	exec.Command("git", "config", "user.email", "test@example.com").Dir = tmpDir
+	cmd = exec.Command("git", "config", "user.name", "Test User")
+	cmd.Dir = tmpDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to configure git user.name: %v", err)
+	}
+	
+	cmd = exec.Command("git", "config", "user.email", "test@example.com")
+	cmd.Dir = tmpDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to configure git user.email: %v", err)
+	}
 	
 	// Create initial commit
 	testFile := filepath.Join(tmpDir, "README.md")
@@ -33,11 +42,15 @@ func setupTestRepo(t *testing.T) (string, func()) {
 	
 	cmd = exec.Command("git", "add", ".")
 	cmd.Dir = tmpDir
-	cmd.Run()
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to add files: %v", err)
+	}
 	
 	cmd = exec.Command("git", "commit", "-m", "Initial commit")
 	cmd.Dir = tmpDir
-	cmd.Run()
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("Failed to create initial commit: %v\nOutput: %s", err, output)
+	}
 	
 	// Return cleanup function
 	cleanup := func() {
@@ -229,8 +242,17 @@ func TestListBranches(t *testing.T) {
 	defer os.Chdir(oldWd)
 	
 	// Create some test branches
-	exec.Command("git", "branch", "test-branch-1").Dir = tmpDir
-	exec.Command("git", "branch", "test-branch-2").Dir = tmpDir
+	cmd := exec.Command("git", "branch", "test-branch-1")
+	cmd.Dir = tmpDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to create test-branch-1: %v", err)
+	}
+	
+	cmd = exec.Command("git", "branch", "test-branch-2")
+	cmd.Dir = tmpDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to create test-branch-2: %v", err)
+	}
 	
 	repo, err := NewRepository()
 	if err != nil {
