@@ -13,6 +13,8 @@ A bash script for creating and managing isolated Git worktrees for agentic workf
 - **GitHub integration**: Push branches and create PRs directly
 - **Flexible paths**: Custom destination directories or automatic organization
 - **Environment copying**: Optionally copy `.env` and `.dev.vars` files to new worktrees
+- **Auto-setup**: Automatically detect and run package manager install/build commands
+- **Configurable**: Project and global configuration for custom post-create scripts
 
 ## Installation
 
@@ -48,6 +50,15 @@ hatch -b feature-x -d ~/projects/custom-dir
 
 # Copy .env and .dev.vars files from source
 hatch -b feature-x -e
+
+# Auto-detect and run setup (pnpm install, npm install, etc.)
+hatch -b feature-x -s
+
+# Run custom post-create scripts
+hatch -b feature-x -S "pnpm install --frozen-lockfile" -S "pnpm test"
+
+# Combine: copy env files and run setup
+hatch -b feature-x -e -s
 ```
 
 ### Remove a worktree
@@ -88,6 +99,47 @@ hatch -b experiment-ml -r
 # Cleanup after work is merged
 hatch rm agent/auth-system -R
 ```
+
+## Configuration
+
+### Project Configuration (`.hatchrc`)
+
+Create a `.hatchrc` file in your project root to define custom post-create scripts:
+
+```bash
+# .hatchrc
+POST_CREATE_SCRIPTS=(
+  "pnpm install"
+  "pnpm build"
+  "cp .env.example .env"
+)
+```
+
+### Global Configuration (`~/.config/hatch/config`)
+
+Create a global config for user-wide defaults:
+
+```bash
+# ~/.config/hatch/config
+# Override auto-detected scripts
+PNPM_SETUP="pnpm install --frozen-lockfile && pnpm build"
+NPM_SETUP="npm ci && npm run build"
+
+# Default when no package manager detected
+DEFAULT_POST_CREATE="echo 'Ready to work!'"
+```
+
+### Auto-Detection
+
+When using `-s` flag, hatch automatically detects and runs appropriate setup commands:
+
+- **pnpm**: `pnpm install` + `pnpm build` (if build script exists)
+- **npm**: `npm install` + `npm run build` (if build script exists)
+- **yarn**: `yarn install` + `yarn build` (if build script exists)
+- **cargo**: `cargo build`
+- **go**: `go mod download`
+- **pip**: `pip install -r requirements.txt`
+- **bundler**: `bundle install`
 
 ## Requirements
 

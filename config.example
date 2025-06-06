@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Example global hatch configuration
+# Copy this to ~/.config/hatch/config and customize
+
+# Default post-create script when no auto-detection matches
+DEFAULT_POST_CREATE="echo 'No package manager detected'"
+
+# Override auto-detected scripts for specific package managers
+PNPM_SETUP="pnpm install --frozen-lockfile && pnpm build"
+NPM_SETUP="npm ci && npm run build"
+YARN_SETUP="yarn install --frozen-lockfile && yarn build"
+
+# You can add custom functions or variables here
+# that will be available to hatch

@@ -12,6 +12,8 @@
 #   -r                 Create a GitHub PR via gh CLI after push (implies -p)
 #   -d <dest>          Override destination directory
 #   -e                 Copy .env and .dev.vars files from source worktree
+#   -s                 Run setup scripts (auto-detect or from config)
+#   -S <script>        Run custom post-create script (can use multiple times)
 #
 # REMOVAL FLAGS (after `rm` sub‑command)
 #   -y                 No‑prompt force removal (implies --force to Git)
@@ -24,6 +26,64 @@
 set -euo pipefail
 
 # ─── Helper ------------------------------------------------------------------
+# Load configuration from file
+load_config() {
+  local config_file="$1"
+  [[ -f "$config_file" ]] && source "$config_file"
+}
+
+# Auto-detect package manager and return setup commands
+auto_detect_setup() {
+  local dir="$1"
+  local scripts=()
+  
+  # Node.js package managers
+  if [[ -f "$dir/pnpm-lock.yaml" ]]; then
+    scripts+=("pnpm install")
+    [[ -f "$dir/package.json" ]] && grep -q '"build"' "$dir/package.json" && scripts+=("pnpm build")
+  elif [[ -f "$dir/package-lock.json" ]]; then
+    scripts+=("npm install")
+    [[ -f "$dir/package.json" ]] && grep -q '"build"' "$dir/package.json" && scripts+=("npm run build")
+  elif [[ -f "$dir/yarn.lock" ]]; then
+    scripts+=("yarn install")
+    [[ -f "$dir/package.json" ]] && grep -q '"build"' "$dir/package.json" && scripts+=("yarn build")
+  # Other languages
+  elif [[ -f "$dir/Cargo.lock" ]]; then
+    scripts+=("cargo build")
+  elif [[ -f "$dir/go.mod" ]]; then
+    scripts+=("go mod download")
+  elif [[ -f "$dir/requirements.txt" ]]; then
+    scripts+=("pip install -r requirements.txt")
+  elif [[ -f "$dir/Gemfile.lock" ]]; then
+    scripts+=("bundle install")
+  fi
+  
+  printf '%s\n' "${scripts[@]}"
+}
+
+# Run post-create scripts
+run_post_scripts() {
+  local dest="$1"
+  shift
+  local scripts=("$@")
+  
+  if [[ ${#scripts[@]} -eq 0 ]]; then
+    return
+  fi
+  
+  echo "🚀  Running post-create scripts..."
+  cd "$dest"
+  
+  for script in "${scripts[@]}"; do
+    echo "   → $script"
+    if eval "$script"; then
+      echo "   ✓ Success"
+    else
+      echo "   ✗ Failed: $script" >&2
+    fi
+  done
+}
+
 usage() {
   cat <<EOF
 Usage:  hatch -b <name> [options]        # create worktree
@@ -36,6 +96,8 @@ Creation options:
   -r               create GitHub PR (implies -p)
   -d <dest>        custom destination path
   -e               copy .env and .dev.vars files from source
+  -s               run setup scripts (auto-detect or from config)
+  -S <script>      run custom post-create script (repeatable)
 
 Removal flags (after 'rm'):
   -y               no confirmation; force if dirty
@@ -103,8 +165,12 @@ fi
 # ─── Creation path -----------------------------------------------------------
 # Defaults
 branch=""; base=""; push=false; pr=false; custom_dest=""; copy_env=false
+run_setup=false; custom_scripts=()
 
-while getopts "b:f:prd:eh" opt; do
+# Load global config
+load_config "$HOME/.config/hatch/config"
+
+while getopts "b:f:prd:esS:h" opt; do
   case $opt in
     b) branch="$OPTARG" ;;
     f) base="$OPTARG" ;;
@@ -112,6 +178,8 @@ while getopts "b:f:prd:eh" opt; do
     r) pr=true; push=true ;;
     d) custom_dest="$OPTARG" ;;
     e) copy_env=true ;;
+    s) run_setup=true ;;
+    S) custom_scripts+=("$OPTARG") ;;
     h|*) usage ;;
   esac
 done
@@ -164,6 +232,42 @@ if $copy_env; then
       echo "📋  Copied $env_file"
     fi
   done
+fi
+
+# Run post-create scripts
+if [[ ${#custom_scripts[@]} -gt 0 ]]; then
+  # Custom scripts take precedence
+  run_post_scripts "$dest" "${custom_scripts[@]}"
+elif $run_setup; then
+  # Load project config if exists
+  POST_CREATE_SCRIPTS=()
+  load_config "$root/.hatchrc"
+  
+  if [[ ${#POST_CREATE_SCRIPTS[@]} -gt 0 ]]; then
+    # Use project-specific scripts
+    run_post_scripts "$dest" "${POST_CREATE_SCRIPTS[@]}"
+  else
+    # Auto-detect setup commands
+    mapfile -t detected_scripts < <(auto_detect_setup "$dest")
+    
+    # Check for user overrides in global config
+    if [[ ${#detected_scripts[@]} -gt 0 ]]; then
+      # Check for package manager specific overrides
+      if [[ "${detected_scripts[0]}" == "pnpm install" ]] && [[ -n "${PNPM_SETUP:-}" ]]; then
+        run_post_scripts "$dest" "$PNPM_SETUP"
+      elif [[ "${detected_scripts[0]}" == "npm install" ]] && [[ -n "${NPM_SETUP:-}" ]]; then
+        run_post_scripts "$dest" "$NPM_SETUP"
+      elif [[ "${detected_scripts[0]}" == "yarn install" ]] && [[ -n "${YARN_SETUP:-}" ]]; then
+        run_post_scripts "$dest" "$YARN_SETUP"
+      elif [[ -n "${DEFAULT_POST_CREATE:-}" ]]; then
+        run_post_scripts "$dest" "$DEFAULT_POST_CREATE"
+      else
+        run_post_scripts "$dest" "${detected_scripts[@]}"
+      fi
+    elif [[ -n "${DEFAULT_POST_CREATE:-}" ]]; then
+      run_post_scripts "$dest" "$DEFAULT_POST_CREATE"
+    fi
+  fi
 fi
 
 if $push; then

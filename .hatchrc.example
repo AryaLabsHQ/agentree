@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Example .hatchrc - Project-specific hatch configuration
+# Copy this to .hatchrc in your project root and customize
+
+# Post-create scripts to run after worktree creation
+# These take precedence over auto-detection
+POST_CREATE_SCRIPTS=(
+  "pnpm install"
+  "pnpm build"
+  "pnpm test"
+)
+
+# You can also customize based on conditions
+# if [[ -f ".env.example" ]]; then
+#   POST_CREATE_SCRIPTS+=("cp .env.example .env")
+# fi
