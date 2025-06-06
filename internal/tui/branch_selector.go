@@ -23,7 +23,6 @@ type branchSelectorModel struct {
 	cursor       int
 	selected     string
 	choosing     bool
-	err          error
 }
 
 // Style definitions

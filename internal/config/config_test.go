@@ -120,7 +120,11 @@ POST_CREATE_SCRIPTS=(
 func TestLoadGlobalConfig(t *testing.T) {
 	// Save original HOME
 	originalHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", originalHome)
+	defer func() {
+		if err := os.Setenv("HOME", originalHome); err != nil {
+			t.Fatalf("Failed to restore HOME: %v", err)
+		}
+	}()
 
 	tests := []struct {
 		name     string
@@ -180,7 +184,9 @@ YARN_SETUP="yarn"`,
 		t.Run(tt.name, func(t *testing.T) {
 			// Create temporary HOME
 			tmpHome := t.TempDir()
-			os.Setenv("HOME", tmpHome)
+			if err := os.Setenv("HOME", tmpHome); err != nil {
+				t.Fatalf("Failed to set HOME: %v", err)
+			}
 
 			// Create config file if content provided
 			if tt.config != "" {

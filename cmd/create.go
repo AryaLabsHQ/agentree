@@ -55,7 +55,7 @@ func init() {
 	createCmd.Flags().StringArrayVarP(&customScripts, "script", "S", nil, "Custom post-create script (can be used multiple times)")
 	
 	// Make branch required unless in interactive mode
-	createCmd.MarkFlagRequired("branch")
+	_ = createCmd.MarkFlagRequired("branch")
 }
 
 // For backward compatibility, also make flags available at root level
@@ -209,7 +209,10 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		)
 		
 		runner := scripts.NewRunner(dest)
-		runner.RunScripts(scriptsToRun)
+		if err := runner.RunScripts(scriptsToRun); err != nil {
+			// Log error but don't fail the command
+			fmt.Fprintf(os.Stderr, "Warning: Some post-create scripts failed: %v\n", err)
+		}
 	}
 	
 	// Push to origin if requested

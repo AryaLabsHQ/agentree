@@ -40,14 +40,24 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close() // defer ensures the file is closed when function returns
+	defer func() {
+		if err := srcFile.Close(); err != nil {
+			// Log error but don't fail since we already read the file
+			fmt.Fprintf(os.Stderr, "Warning: failed to close source file: %v\n", err)
+		}
+	}()
 	
 	// Create destination file
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer dstFile.Close()
+	defer func() {
+		if err := dstFile.Close(); err != nil {
+			// Log error but don't fail since we already wrote the file
+			fmt.Fprintf(os.Stderr, "Warning: failed to close destination file: %v\n", err)
+		}
+	}()
 	
 	// Copy the contents
 	if _, err := io.Copy(dstFile, srcFile); err != nil {

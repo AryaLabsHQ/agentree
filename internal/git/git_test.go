@@ -72,9 +72,13 @@ func TestNewRepository(t *testing.T) {
 				tmpDir, cleanup := setupTestRepo(t)
 				// Change to the repo directory
 				originalWd, _ := os.Getwd()
-				os.Chdir(tmpDir)
+				if err := os.Chdir(tmpDir); err != nil {
+					t.Fatalf("Failed to change directory: %v", err)
+				}
 				return originalWd, func() {
-					os.Chdir(originalWd)
+					if err := os.Chdir(originalWd); err != nil {
+						t.Errorf("Failed to restore directory: %v", err)
+					}
 					cleanup()
 				}
 			},
@@ -85,9 +89,13 @@ func TestNewRepository(t *testing.T) {
 			setup: func() (string, func()) {
 				tmpDir := t.TempDir()
 				oldWd, _ := os.Getwd()
-				os.Chdir(tmpDir)
+				if err := os.Chdir(tmpDir); err != nil {
+					t.Fatalf("Failed to change directory: %v", err)
+				}
 				return oldWd, func() {
-					os.Chdir(oldWd)
+					if err := os.Chdir(oldWd); err != nil {
+						t.Errorf("Failed to restore directory: %v", err)
+					}
 				}
 			},
 			wantErr: true,
@@ -117,8 +125,14 @@ func TestGetDefaultWorktreeDir(t *testing.T) {
 	defer cleanup()
 	
 	oldWd, _ := os.Getwd()
-	os.Chdir(tmpDir)
-	defer os.Chdir(oldWd)
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("Failed to change directory: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(oldWd); err != nil {
+			t.Errorf("Failed to restore directory: %v", err)
+		}
+	}()
 	
 	repo, err := NewRepository()
 	if err != nil {
@@ -144,8 +158,14 @@ func TestCurrentBranch(t *testing.T) {
 	defer cleanup()
 	
 	oldWd, _ := os.Getwd()
-	os.Chdir(tmpDir)
-	defer os.Chdir(oldWd)
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("Failed to change directory: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(oldWd); err != nil {
+			t.Errorf("Failed to restore directory: %v", err)
+		}
+	}()
 	
 	repo, err := NewRepository()
 	if err != nil {
@@ -166,7 +186,9 @@ func TestCurrentBranch(t *testing.T) {
 	// Test detached HEAD
 	cmd := exec.Command("git", "checkout", "HEAD~0")
 	cmd.Dir = tmpDir
-	cmd.Run()
+	if err := cmd.Run(); err != nil {
+		t.Errorf("Failed to checkout HEAD: %v", err)
+	}
 	
 	branch, err = repo.CurrentBranch()
 	if err != nil {
@@ -184,8 +206,14 @@ func TestCreateWorktree(t *testing.T) {
 	defer cleanup()
 	
 	oldWd, _ := os.Getwd()
-	os.Chdir(tmpDir)
-	defer os.Chdir(oldWd)
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("Failed to change directory: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(oldWd); err != nil {
+			t.Errorf("Failed to restore directory: %v", err)
+		}
+	}()
 	
 	repo, err := NewRepository()
 	if err != nil {
@@ -238,8 +266,14 @@ func TestListBranches(t *testing.T) {
 	defer cleanup()
 	
 	oldWd, _ := os.Getwd()
-	os.Chdir(tmpDir)
-	defer os.Chdir(oldWd)
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("Failed to change directory: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(oldWd); err != nil {
+			t.Errorf("Failed to restore directory: %v", err)
+		}
+	}()
 	
 	// Create some test branches
 	cmd := exec.Command("git", "branch", "test-branch-1")
@@ -285,8 +319,14 @@ func TestFindWorktree(t *testing.T) {
 	defer cleanup()
 	
 	oldWd, _ := os.Getwd()
-	os.Chdir(tmpDir)
-	defer os.Chdir(oldWd)
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("Failed to change directory: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(oldWd); err != nil {
+			t.Errorf("Failed to restore directory: %v", err)
+		}
+	}()
 	
 	repo, err := NewRepository()
 	if err != nil {
@@ -351,8 +391,14 @@ func TestRemoveWorktree(t *testing.T) {
 	defer cleanup()
 	
 	oldWd, _ := os.Getwd()
-	os.Chdir(tmpDir)
-	defer os.Chdir(oldWd)
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("Failed to change directory: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(oldWd); err != nil {
+			t.Errorf("Failed to restore directory: %v", err)
+		}
+	}()
 	
 	repo, err := NewRepository()
 	if err != nil {
@@ -383,13 +429,21 @@ func TestDeleteBranch(t *testing.T) {
 	defer cleanup()
 	
 	oldWd, _ := os.Getwd()
-	os.Chdir(tmpDir)
-	defer os.Chdir(oldWd)
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("Failed to change directory: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(oldWd); err != nil {
+			t.Errorf("Failed to restore directory: %v", err)
+		}
+	}()
 	
 	// Create a test branch
 	cmd := exec.Command("git", "branch", "test-delete")
 	cmd.Dir = tmpDir
-	cmd.Run()
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to create test branch: %v", err)
+	}
 	
 	repo, err := NewRepository()
 	if err != nil {

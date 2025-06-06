@@ -3,6 +3,7 @@ package config
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,7 +31,12 @@ func LoadProjectConfig(projectRoot string) (*Config, error) {
 		}
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			// Log error but don't fail since we already read the file
+			fmt.Fprintf(os.Stderr, "Warning: failed to close config file: %v\n", err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(file)
 	inPostCreateScripts := false
@@ -83,7 +89,12 @@ func LoadGlobalConfig() (*Config, error) {
 		}
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			// Log error but don't fail since we already read the file
+			fmt.Fprintf(os.Stderr, "Warning: failed to close config file: %v\n", err)
+		}
+	}()
 	
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {

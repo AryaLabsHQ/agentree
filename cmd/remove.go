@@ -63,7 +63,10 @@ func runRemove(cmd *cobra.Command, args []string) error {
 	if !force {
 		fmt.Printf("Remove worktree at %s? [y/N] ", info.Path)
 		var response string
-		fmt.Scanln(&response)
+		if _, err := fmt.Scanln(&response); err != nil {
+			// Default to "no" on error
+			response = "n"
+		}
 		if response != "y" && response != "Y" {
 			fmt.Println("Cancelled")
 			return nil

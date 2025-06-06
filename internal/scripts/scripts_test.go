@@ -257,13 +257,19 @@ func TestScriptOutput(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	runner := NewRunner(tmpDir)
-	runner.RunScripts([]string{"echo 'Hello from script'"})
+	if err := runner.RunScripts([]string{"echo 'Hello from script'"}); err != nil {
+		t.Errorf("RunScripts failed: %v", err)
+	}
 
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Errorf("Failed to close writer: %v", err)
+	}
 	os.Stdout = oldStdout
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Errorf("Failed to read from pipe: %v", err)
+	}
 	output := buf.String()
 
 	// Check for expected output patterns

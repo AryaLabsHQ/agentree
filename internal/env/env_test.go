@@ -170,7 +170,9 @@ func TestCopyFileErrors(t *testing.T) {
 			setup: func() (string, string) {
 				srcDir := t.TempDir()
 				srcPath := filepath.Join(srcDir, "test.txt")
-				os.WriteFile(srcPath, []byte("test"), 0644)
+				if err := os.WriteFile(srcPath, []byte("test"), 0644); err != nil {
+					t.Fatalf("Failed to write test file: %v", err)
+				}
 				return srcPath, "/nonexistent/dir/dest.txt"
 			},
 			wantErr: true,
