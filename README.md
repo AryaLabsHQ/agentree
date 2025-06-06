@@ -1,31 +1,41 @@
 # hatch
 
-A bash script for creating and managing isolated Git worktrees for agentic workflows.
+Create and manage isolated Git worktrees for AI coding agents.
 
 ## Overview
 
 `hatch` simplifies working with multiple AI coding agents (like Codex and Claude Code) by creating isolated Git worktrees. Each agent gets its own branch and directory, allowing concurrent work without conflicts.
 
-## Features
+## Why hatch?
 
-- **Quick worktree creation**: Automatically prefixes branches with `agent/` for organization
-- **Easy cleanup**: Remove worktrees and optionally delete branches
-- **GitHub integration**: Push branches and create PRs directly
-- **Flexible paths**: Custom destination directories or automatic organization
-- **Environment copying**: Optionally copy `.env` and `.dev.vars` files to new worktrees
-- **Auto-setup**: Automatically detect and run package manager install/build commands
-- **Configurable**: Project and global configuration for custom post-create scripts
+When working with AI coding assistants, you often need to:
+- Create isolated environments for different tasks
+- Quickly switch between multiple concurrent experiments
+- Maintain clean separation between AI-generated changes
+- Easily clean up after experiments
+
+`hatch` automates this workflow with a single command.
 
 ## Installation
 
+### Homebrew (Recommended)
+
 ```bash
-chmod +x hatch
-cp hatch ~/bin/  # or any directory in your PATH
+brew tap AryaLabsHQ/tap
+brew install hatch
 ```
 
-Or add to your PATH:
+### Download Pre-built Binary
+
+Download the latest release for your platform from the [releases page](https://github.com/AryaLabsHQ/hatch/releases).
+
+### Build from Source
+
 ```bash
-echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc
+git clone https://github.com/AryaLabsHQ/hatch.git
+cd hatch
+make build
+make install
 ```
 
 ## Usage
@@ -33,7 +43,10 @@ echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc
 ### Create a worktree
 
 ```bash
-# Create worktree on branch agent/feature-x
+# Interactive mode - select base branch from list
+hatch -i
+
+# Create worktree with specific branch name
 hatch -b feature-x
 
 # Create from specific base branch
@@ -77,28 +90,17 @@ hatch rm agent/feature-x -y
 hatch rm agent/feature-x -R
 ```
 
-## How it works
+## Features
 
-1. **Worktree organization**: Creates worktrees in `../repo-worktrees/` by default
-2. **Branch naming**: Automatically prefixes with `agent/` unless branch contains `/`
-3. **Safe operations**: Validates paths and branches before creation
-4. **Git integration**: Uses native Git worktree commands for reliability
-
-## Examples
-
-```bash
-# AI agent working on authentication
-hatch -b auth-system
-
-# AI agent fixing bugs, push when ready
-hatch -b bugfix-123 -p
-
-# Quick experiment, create PR immediately
-hatch -b experiment-ml -r
-
-# Cleanup after work is merged
-hatch rm agent/auth-system -R
-```
+- **Interactive branch selection**: Use `-i` flag for a TUI branch picker
+- **Quick worktree creation**: Automatically prefixes branches with `agent/` for organization
+- **Easy cleanup**: Remove worktrees and optionally delete branches
+- **GitHub integration**: Push branches and create PRs directly
+- **Flexible paths**: Custom destination directories or automatic organization
+- **Environment copying**: Optionally copy `.env` and `.dev.vars` files to new worktrees
+- **Auto-setup**: Automatically detect and run package manager install/build commands
+- **Configurable**: Project and global configuration for custom post-create scripts
+- **Cross-platform**: Works on macOS, Linux, and Windows
 
 ## Configuration
 
@@ -141,10 +143,66 @@ When using `-s` flag, hatch automatically detects and runs appropriate setup com
 - **pip**: `pip install -r requirements.txt`
 - **bundler**: `bundle install`
 
+## Examples
+
+```bash
+# AI agent working on authentication
+hatch -b auth-system
+
+# Interactive mode to choose base branch
+hatch -i
+
+# AI agent fixing bugs, push when ready
+hatch -b bugfix-123 -p
+
+# Quick experiment, create PR immediately
+hatch -b experiment-ml -r
+
+# Cleanup after work is merged
+hatch rm agent/auth-system -R
+```
+
+## Development
+
+```bash
+# Clone the repository
+git clone https://github.com/AryaLabsHQ/hatch.git
+cd hatch
+
+# Run tests
+make test
+
+# Build binary
+make build
+
+# Run locally
+make run
+```
+
+## Version History
+
+- **v1.0+**: Complete rewrite in Go with interactive mode, better performance, and cross-platform support
+- **v0.1**: Original bash implementation (available as `hatch-v0.1.sh` for reference)
+
+### Why the rewrite?
+
+The original bash script served well but had limitations:
+- Platform-specific issues (especially on Windows)
+- Limited testing capabilities
+- Difficult to add complex features like interactive mode
+- No proper dependency management
+
+The Go version provides:
+- Cross-platform compatibility
+- Better performance
+- Comprehensive test coverage
+- Interactive TUI with branch selection
+- Easier distribution via homebrew
+- Type safety and better error handling
+
 ## Requirements
 
 - Git 2.5+ (for worktree support)
-- Bash 4.0+
 - Optional: `gh` CLI for GitHub PR creation
 
 ## License
