@@ -11,6 +11,7 @@
 #   -p                 Push new branch to origin after creation
 #   -r                 Create a GitHub PR via gh CLI after push (implies -p)
 #   -d <dest>          Override destination directory
+#   -e                 Copy .env and .dev.vars files from source worktree
 #
 # REMOVAL FLAGS (after `rm` sub‑command)
 #   -y                 No‑prompt force removal (implies --force to Git)
@@ -34,6 +35,7 @@ Creation options:
   -p               push branch to origin
   -r               create GitHub PR (implies -p)
   -d <dest>        custom destination path
+  -e               copy .env and .dev.vars files from source
 
 Removal flags (after 'rm'):
   -y               no confirmation; force if dirty
@@ -100,15 +102,16 @@ fi
 
 # ─── Creation path -----------------------------------------------------------
 # Defaults
-branch=""; base=""; push=false; pr=false; custom_dest=""
+branch=""; base=""; push=false; pr=false; custom_dest=""; copy_env=false
 
-while getopts "b:f:prd:h" opt; do
+while getopts "b:f:prd:eh" opt; do
   case $opt in
     b) branch="$OPTARG" ;;
     f) base="$OPTARG" ;;
     p) push=true ;;
     r) pr=true; push=true ;;
     d) custom_dest="$OPTARG" ;;
+    e) copy_env=true ;;
     h|*) usage ;;
   esac
 done
@@ -152,6 +155,16 @@ git worktree add "$dest" "$branch"
 echo "✅  Worktree ready:"
 echo "    path   $dest"
 echo "    branch $branch (from $base)"
+
+# Copy env files if requested
+if $copy_env; then
+  for env_file in .env .dev.vars; do
+    if [[ -f "$root/$env_file" ]]; then
+      cp "$root/$env_file" "$dest/$env_file"
+      echo "📋  Copied $env_file"
+    fi
+  done
+fi
 
 if $push; then
   git -C "$dest" push -u origin "$branch"

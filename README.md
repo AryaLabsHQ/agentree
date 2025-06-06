@@ -12,6 +12,7 @@ A bash script for creating and managing isolated Git worktrees for agentic workf
 - **Easy cleanup**: Remove worktrees and optionally delete branches
 - **GitHub integration**: Push branches and create PRs directly
 - **Flexible paths**: Custom destination directories or automatic organization
+- **Environment copying**: Optionally copy `.env` and `.dev.vars` files to new worktrees
 
 ## Installation
 
@@ -44,6 +45,9 @@ hatch -b feature-x -r
 
 # Custom destination
 hatch -b feature-x -d ~/projects/custom-dir
+
+# Copy .env and .dev.vars files from source
+hatch -b feature-x -e
 ```
 
 ### Remove a worktree
