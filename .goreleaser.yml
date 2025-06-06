@@ -79,6 +79,7 @@ brews:
       owner: AryaLabsHQ
       name: homebrew-tap
       branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     directory: Formula
     homepage: "https://github.com/AryaLabsHQ/hatch"
     description: "Create and manage isolated Git worktrees for agentic workflows"
