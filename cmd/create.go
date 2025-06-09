@@ -49,8 +49,8 @@ func init() {
 	createCmd.Flags().BoolVarP(&push, "push", "p", false, "Push branch to origin after creation")
 	createCmd.Flags().BoolVarP(&pr, "pr", "r", false, "Create GitHub PR after push (implies -p)")
 	createCmd.Flags().StringVarP(&dest, "dest", "d", "", "Custom destination directory")
-	createCmd.Flags().BoolVarP(&copyEnv, "env", "e", false, "Copy .env and .dev.vars files")
-	createCmd.Flags().BoolVarP(&runSetup, "setup", "s", false, "Run setup scripts (auto-detect or from config)")
+	createCmd.Flags().BoolVarP(&copyEnv, "env", "e", true, "Copy .env and .dev.vars files")
+	createCmd.Flags().BoolVarP(&runSetup, "setup", "s", true, "Run setup scripts (auto-detect or from config)")
 	createCmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "Interactive mode for branch selection")
 	createCmd.Flags().StringArrayVarP(&customScripts, "script", "S", nil, "Custom post-create script (can be used multiple times)")
 
@@ -66,8 +66,8 @@ func init() {
 	rootCmd.Flags().BoolVarP(&push, "push", "p", false, "Push branch to origin")
 	rootCmd.Flags().BoolVarP(&pr, "pr", "r", false, "Create GitHub PR (implies -p)")
 	rootCmd.Flags().StringVarP(&dest, "dest", "d", "", "Custom destination directory")
-	rootCmd.Flags().BoolVarP(&copyEnv, "env", "e", false, "Copy .env and .dev.vars files")
-	rootCmd.Flags().BoolVarP(&runSetup, "setup", "s", false, "Run setup scripts")
+	rootCmd.Flags().BoolVarP(&copyEnv, "env", "e", true, "Copy .env and .dev.vars files")
+	rootCmd.Flags().BoolVarP(&runSetup, "setup", "s", true, "Run setup scripts")
 	rootCmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "Interactive mode")
 	rootCmd.Flags().StringArrayVarP(&customScripts, "script", "S", nil, "Custom post-create script")
 
@@ -98,21 +98,36 @@ func runCreate(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		selectedBranch, err := tui.RunBranchSelector(branches)
+		currentBranch, err := repo.CurrentBranch()
 		if err != nil {
+			fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error getting current branch: %v", err)))
+			return err
+		}
+
+		// Get default directory for display
+		worktreeDir := repo.GetDefaultWorktreeDir()
+		defaultDest := filepath.Join(worktreeDir, "agent-{branch-name}")
+
+		options, err := tui.RunWizard(branches, currentBranch, defaultDest)
+		if err != nil {
+			if err == tui.ErrWizardCancelled {
+				// User cancelled - exit gracefully without error message
+				os.Exit(0)
+			}
 			fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error: %v", err)))
 			return err
 		}
 
-		// Check if it's an existing branch
-		for _, b := range branches {
-			if b == selectedBranch {
-				fmt.Fprintln(os.Stderr, errorStyle.Render("Switching to existing branches not yet implemented"))
-				return fmt.Errorf("existing branch selected")
-			}
+		// Apply wizard options
+		branch = options.Branch
+		base = options.BaseBranch
+		copyEnv = options.CopyEnv
+		runSetup = options.RunSetup
+		push = options.Push
+		pr = options.CreatePR
+		if options.CustomDest != "" {
+			dest = options.CustomDest
 		}
-
-		branch = selectedBranch
 	}
 
 	// Validate branch
@@ -218,7 +233,8 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	// Push to origin if requested
 	if push {
 		fmt.Println(infoStyle.Render("Pushing to origin..."))
-		pushCmd := exec.Command("git", "-C", dest, "push", "-u", "origin", branch)
+		pushCmd := exec.Command("git", "push", "-u", "origin", branch)
+		pushCmd.Dir = dest
 		if output, err := pushCmd.CombinedOutput(); err != nil {
 			fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error pushing: %s", output)))
 			return err
@@ -229,12 +245,13 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	// Create PR if requested
 	if pr {
 		fmt.Println(infoStyle.Render("Creating GitHub PR..."))
-		prCmd := exec.Command("gh", "-C", dest, "pr", "create", "--fill", "--web")
-		if err := prCmd.Run(); err != nil {
-			if _, err := exec.LookPath("gh"); err != nil {
+		prCmd := exec.Command("gh", "pr", "create", "--fill", "--web")
+		prCmd.Dir = dest
+		if output, err := prCmd.CombinedOutput(); err != nil {
+			if _, lookupErr := exec.LookPath("gh"); lookupErr != nil {
 				fmt.Fprintln(os.Stderr, errorStyle.Render("⚠️  gh CLI not found; skipping PR creation"))
 			} else {
-				fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error creating PR: %v", err)))
+				fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error creating PR: %s", string(output))))
 			}
 		}
 	}

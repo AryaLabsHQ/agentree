@@ -40,39 +40,55 @@ make install
 
 ## Usage
 
-### Create a worktree
+### Quick Start
 
 ```bash
-# Interactive mode - select base branch from list
+# Interactive mode (recommended) - wizard guides you through all options
 agentree -i
 
-# Create worktree with specific branch name
+# Or specify a branch name directly
 agentree -b feature-x
+```
 
+That's it! agentree will:
+- Create a new branch prefixed with `agent/` (e.g., `agent/feature-x`)
+- Set up an isolated worktree in `../myrepo-worktrees/`
+- Copy your `.env` and `.dev.vars` files
+- Run setup commands (auto-detected: npm/pnpm/yarn install, etc.)
+- Switch you to the new worktree directory
+
+### Common Options
+
+```bash
+# Skip environment copying and setup (use -e=false -s=false)
+agentree -b feature-x -e=false -s=false
+
+# Push to GitHub and create a PR
+agentree -b feature-x -r
+```
+
+### Advanced Usage
+
+<details>
+<summary>View all options</summary>
+
+```bash
 # Create from specific base branch
 agentree -b feature-x -f main
-
-# Push to origin after creation
-agentree -b feature-x -p
-
-# Create PR after push (requires gh CLI)
-agentree -b feature-x -r
 
 # Custom destination
 agentree -b feature-x -d ~/projects/custom-dir
 
-# Copy .env and .dev.vars files from source
-agentree -b feature-x -e
-
-# Auto-detect and run setup (pnpm install, npm install, etc.)
-agentree -b feature-x -s
-
 # Run custom post-create scripts
 agentree -b feature-x -S "pnpm install --frozen-lockfile" -S "pnpm test"
 
-# Combine: copy env files and run setup
-agentree -b feature-x -e -s
+# Individual flags:
+# -p    Push to origin after creation
+# -e    Copy .env and .dev.vars files
+# -s    Auto-detect and run setup (pnpm install, npm install, etc.)
 ```
+
+</details>
 
 ### Remove a worktree
 
@@ -92,7 +108,7 @@ agentree rm agent/feature-x -R
 
 ## Features
 
-- **Interactive branch selection**: Use `-i` flag for a TUI branch picker
+- **Interactive wizard**: Use `-i` flag for a guided setup that prompts for all options
 - **Quick worktree creation**: Automatically prefixes branches with `agent/` for organization
 - **Easy cleanup**: Remove worktrees and optionally delete branches
 - **GitHub integration**: Push branches and create PRs directly
