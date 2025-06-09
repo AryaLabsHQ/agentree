@@ -30,7 +30,6 @@ type wizardModel struct {
 	textInput    textinput.Model
 	cursor       int
 	filtered     []string
-	err          error
 	quitting     bool
 	completed    bool
 	defaultDir   string

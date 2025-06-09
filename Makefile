@@ -37,7 +37,7 @@ run: build
 
 # Run linter (requires golangci-lint)
 lint:
-	golangci-lint run || echo "Install golangci-lint: https://golangci-lint.run/usage/install/"
+	golangci-lint run
 
 # Format code
 fmt:
