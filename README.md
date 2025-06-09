@@ -63,7 +63,10 @@ That's it! agentree will:
 # Skip environment copying and setup (use -e=false -s=false)
 agentree -b feature-x -e=false -s=false
 
-# Push to GitHub and create a PR
+# Push to GitHub after creation  
+agentree -b feature-x -p
+
+# Push and create a PR (Note: PRs are usually created after making changes)
 agentree -b feature-x -r
 ```
 

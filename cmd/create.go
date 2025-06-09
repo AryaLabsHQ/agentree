@@ -51,7 +51,7 @@ func init() {
 	createCmd.Flags().StringVarP(&dest, "dest", "d", "", "Custom destination directory")
 	createCmd.Flags().BoolVarP(&copyEnv, "env", "e", true, "Copy .env and .dev.vars files")
 	createCmd.Flags().BoolVarP(&runSetup, "setup", "s", true, "Run setup scripts (auto-detect or from config)")
-	createCmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "Interactive mode for branch selection")
+	createCmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "Interactive wizard to guide through setup")
 	createCmd.Flags().StringArrayVarP(&customScripts, "script", "S", nil, "Custom post-create script (can be used multiple times)")
 
 	// Make branch required unless in interactive mode
@@ -68,7 +68,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&dest, "dest", "d", "", "Custom destination directory")
 	rootCmd.Flags().BoolVarP(&copyEnv, "env", "e", true, "Copy .env and .dev.vars files")
 	rootCmd.Flags().BoolVarP(&runSetup, "setup", "s", true, "Run setup scripts")
-	rootCmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "Interactive mode")
+	rootCmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "Interactive wizard")
 	rootCmd.Flags().StringArrayVarP(&customScripts, "script", "S", nil, "Custom post-create script")
 
 	// If root command is called with flags, run create

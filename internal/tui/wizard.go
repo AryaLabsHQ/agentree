@@ -97,8 +97,6 @@ func NewWizard(branches []string, currentBranch string, defaultDir string) wizar
 			"branchName",
 			"copyEnv",
 			"runSetup",
-			"push",
-			"createPR",
 			"customDest",
 			"review",
 		},
@@ -126,7 +124,7 @@ func (m wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Handle y/n questions first to prevent text input from processing these keys
 	if keyMsg, ok := msg.(tea.KeyMsg); ok {
 		switch m.steps[m.currentStep] {
-		case "copyEnv", "runSetup", "push", "createPR":
+		case "copyEnv", "runSetup":
 			switch keyMsg.String() {
 			case "y", "Y":
 				switch m.steps[m.currentStep] {
@@ -136,15 +134,6 @@ func (m wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case "runSetup":
 					m.options.RunSetup = true
 					m.currentStep++
-				case "push":
-					m.options.Push = true
-					m.currentStep++
-				case "createPR":
-					m.options.CreatePR = true
-					m.currentStep++
-					// Clear text input for next step
-					m.textInput.SetValue("")
-					m.textInput.Placeholder = "Leave empty for default or enter custom path"
 				}
 				return m, nil
 			case "n", "N":
@@ -155,16 +144,6 @@ func (m wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case "runSetup":
 					m.options.RunSetup = false
 					m.currentStep++
-				case "push":
-					m.options.Push = false
-					m.options.CreatePR = false // Can't create PR without push
-					m.currentStep += 2 // Skip PR question
-				case "createPR":
-					m.options.CreatePR = false
-					m.currentStep++
-					// Clear text input for next step
-					m.textInput.SetValue("")
-					m.textInput.Placeholder = "Leave empty for default or enter custom path"
 				}
 				return m, nil
 			}
@@ -223,13 +202,6 @@ func (m wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			case "runSetup":
 				// Toggle is handled by y/n keys
-				m.currentStep++
-
-			case "push":
-				// Toggle is handled by y/n keys
-				m.currentStep++
-
-			case "createPR":
 				m.currentStep++
 
 			case "customDest":
@@ -350,16 +322,6 @@ func (m wizardModel) View() string {
 		s.WriteString(fmt.Sprintf("Current: %s\n\n", m.boolToYesNo(m.options.RunSetup)))
 		s.WriteString(wizardHelpStyle.Render("Press y/n to choose"))
 
-	case "push":
-		s.WriteString(wizardPromptStyle.Render("Push to GitHub after creation?") + "\n\n")
-		s.WriteString(fmt.Sprintf("Current: %s\n\n", m.boolToYesNo(m.options.Push)))
-		s.WriteString(wizardHelpStyle.Render("Press y/n to choose"))
-
-	case "createPR":
-		s.WriteString(wizardPromptStyle.Render("Create a GitHub PR?") + "\n\n")
-		s.WriteString(fmt.Sprintf("Current: %s\n\n", m.boolToYesNo(m.options.CreatePR)))
-		s.WriteString(wizardHelpStyle.Render("Press y/n to choose"))
-
 	case "customDest":
 		s.WriteString(wizardPromptStyle.Render("Custom destination directory (optional):") + "\n\n")
 		s.WriteString(m.textInput.View() + "\n")
@@ -371,10 +333,6 @@ func (m wizardModel) View() string {
 		s.WriteString(fmt.Sprintf("• New branch: %s\n", wizardSelectedStyle.Render(m.options.Branch)))
 		s.WriteString(fmt.Sprintf("• Copy env files: %s\n", m.boolToYesNo(m.options.CopyEnv)))
 		s.WriteString(fmt.Sprintf("• Run setup: %s\n", m.boolToYesNo(m.options.RunSetup)))
-		s.WriteString(fmt.Sprintf("• Push to GitHub: %s\n", m.boolToYesNo(m.options.Push)))
-		if m.options.Push {
-			s.WriteString(fmt.Sprintf("• Create PR: %s\n", m.boolToYesNo(m.options.CreatePR)))
-		}
 		if m.options.CustomDest != "" {
 			s.WriteString(fmt.Sprintf("• Custom destination: %s\n", wizardSelectedStyle.Render(m.options.CustomDest)))
 		}
