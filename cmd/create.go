@@ -186,12 +186,61 @@ func runCreate(cmd *cobra.Command, args []string) error {
 
 	// Copy environment files if requested
 	if copyEnv {
-		copiedFiles, err := env.CopyEnvFiles(repo.Root, dest)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Warning: %v", err)))
+		// Load configurations and merge them
+		projectConfig, _ := config.LoadProjectConfig(repo.Root)
+		globalConfig, _ := config.LoadGlobalConfig()
+		mergedConfig := config.MergeConfig(globalConfig, projectConfig)
+		
+		// Check if env copying is enabled in config
+		if !mergedConfig.EnvConfig.Enabled {
+			fmt.Println(infoStyle.Render("Environment file copying disabled by configuration"))
 		} else {
-			for _, file := range copiedFiles {
-				fmt.Printf("📋 Copied %s\n", file)
+			// Use the enhanced copier with configuration
+			copier := env.NewEnvFileCopier(repo.Root, dest)
+			
+			// Add custom patterns from config
+			if len(mergedConfig.EnvConfig.IncludePatterns) > 0 {
+				copier.AddCustomPatterns(mergedConfig.EnvConfig.IncludePatterns)
+			}
+			
+			// Discover files based on .gitignore and patterns
+			fmt.Println(infoStyle.Render("Discovering environment files..."))
+			files, err := copier.DiscoverFiles()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: Error discovering files: %v\n", err)
+				// Fall back to legacy behavior
+				copiedFiles, _ := env.CopyEnvFiles(repo.Root, dest)
+				for _, file := range copiedFiles {
+					fmt.Printf("📋 Copied %s\n", file)
+				}
+			} else {
+				// Filter out excluded patterns
+				var filteredFiles []string
+				for _, file := range files {
+					excluded := false
+					for _, pattern := range mergedConfig.EnvConfig.ExcludePatterns {
+						if matched, _ := filepath.Match(pattern, file); matched {
+							excluded = true
+							break
+						}
+					}
+					if !excluded {
+						filteredFiles = append(filteredFiles, file)
+					}
+				}
+				
+				// Copy the filtered files
+				if len(filteredFiles) > 0 {
+					copiedFiles, err := copier.CopyFiles(filteredFiles)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "Warning: Some files couldn't be copied: %v\n", err)
+					}
+					for _, file := range copiedFiles {
+						fmt.Printf("📋 Copied %s\n", file)
+					}
+				} else {
+					fmt.Println(infoStyle.Render("No environment files found to copy"))
+				}
 			}
 		}
 	}

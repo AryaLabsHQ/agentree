@@ -17,11 +17,37 @@ type Config struct {
 	NpmSetup     string
 	YarnSetup    string
 	DefaultSetup string
+	
+	// Environment file configuration
+	EnvConfig EnvConfig
+}
+
+// EnvConfig holds environment file copying configuration
+type EnvConfig struct {
+	// Whether to copy environment files (default: true)
+	Enabled bool
+	// Additional patterns to include beyond gitignore
+	IncludePatterns []string
+	// Patterns to exclude even if found in gitignore
+	ExcludePatterns []string
+	// Whether to search recursively in monorepos (default: true)
+	Recursive bool
+	// Whether to use gitignore as source of truth (default: true)
+	UseGitignore bool
+	// Custom environment file patterns (overrides defaults if set)
+	CustomPatterns []string
 }
 
 // LoadProjectConfig loads configuration from .agentreerc in the project root
 func LoadProjectConfig(projectRoot string) (*Config, error) {
-	cfg := &Config{}
+	cfg := &Config{
+		// Set defaults for env config
+		EnvConfig: EnvConfig{
+			Enabled:      true,
+			Recursive:    true,
+			UseGitignore: true,
+		},
+	}
 	agentreercPath := filepath.Join(projectRoot, ".agentreerc")
 
 	file, err := os.Open(agentreercPath)
@@ -40,6 +66,8 @@ func LoadProjectConfig(projectRoot string) (*Config, error) {
 
 	scanner := bufio.NewScanner(file)
 	inPostCreateScripts := false
+	inEnvIncludePatterns := false
+	inEnvExcludePatterns := false
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -49,21 +77,70 @@ func LoadProjectConfig(projectRoot string) (*Config, error) {
 			continue
 		}
 
+		// Handle array endings
+		if strings.Contains(line, ")") {
+			if inPostCreateScripts {
+				inPostCreateScripts = false
+			} else if inEnvIncludePatterns {
+				inEnvIncludePatterns = false
+			} else if inEnvExcludePatterns {
+				inEnvExcludePatterns = false
+			}
+			continue
+		}
+
 		// Look for POST_CREATE_SCRIPTS array
 		if strings.Contains(line, "POST_CREATE_SCRIPTS=(") {
 			inPostCreateScripts = true
 			continue
 		}
 
+		// Look for ENV_INCLUDE_PATTERNS array
+		if strings.Contains(line, "ENV_INCLUDE_PATTERNS=(") {
+			inEnvIncludePatterns = true
+			continue
+		}
+
+		// Look for ENV_EXCLUDE_PATTERNS array
+		if strings.Contains(line, "ENV_EXCLUDE_PATTERNS=(") {
+			inEnvExcludePatterns = true
+			continue
+		}
+
+		// Handle array contents
 		if inPostCreateScripts {
-			if strings.Contains(line, ")") {
-				inPostCreateScripts = false
-				continue
-			}
 			// Extract script from quotes
 			script := strings.Trim(line, ` "',`)
 			if script != "" {
 				cfg.PostCreateScripts = append(cfg.PostCreateScripts, script)
+			}
+		} else if inEnvIncludePatterns {
+			pattern := strings.Trim(line, ` "',`)
+			if pattern != "" {
+				cfg.EnvConfig.IncludePatterns = append(cfg.EnvConfig.IncludePatterns, pattern)
+			}
+		} else if inEnvExcludePatterns {
+			pattern := strings.Trim(line, ` "',`)
+			if pattern != "" {
+				cfg.EnvConfig.ExcludePatterns = append(cfg.EnvConfig.ExcludePatterns, pattern)
+			}
+		} else {
+			// Handle key=value pairs for env config
+			if strings.HasPrefix(line, "ENV_") {
+				parts := strings.SplitN(line, "=", 2)
+				if len(parts) == 2 {
+					key := strings.TrimSpace(parts[0])
+					value := strings.Trim(strings.TrimSpace(parts[1]), `"'`)
+					
+					switch key {
+					case "ENV_COPY_ENABLED":
+						cfg.EnvConfig.Enabled = value == "true" || value == "1"
+					case "ENV_RECURSIVE":
+						cfg.EnvConfig.Recursive = value == "true" || value == "1"
+					case "ENV_USE_GITIGNORE":
+						cfg.EnvConfig.UseGitignore = value == "true" || value == "1"
+					}
+				}
 			}
 		}
 	}
@@ -73,7 +150,14 @@ func LoadProjectConfig(projectRoot string) (*Config, error) {
 
 // LoadGlobalConfig loads configuration from ~/.config/agentree/config
 func LoadGlobalConfig() (*Config, error) {
-	cfg := &Config{}
+	cfg := &Config{
+		// Set defaults for env config
+		EnvConfig: EnvConfig{
+			Enabled:      true,
+			Recursive:    true,
+			UseGitignore: true,
+		},
+	}
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -136,8 +220,103 @@ func LoadGlobalConfig() (*Config, error) {
 			cfg.YarnSetup = value
 		case "DEFAULT_POST_CREATE":
 			cfg.DefaultSetup = value
+		case "ENV_COPY_ENABLED":
+			cfg.EnvConfig.Enabled = value == "true" || value == "1"
+		case "ENV_RECURSIVE":
+			cfg.EnvConfig.Recursive = value == "true" || value == "1"
+		case "ENV_USE_GITIGNORE":
+			cfg.EnvConfig.UseGitignore = value == "true" || value == "1"
+		case "ENV_INCLUDE_PATTERNS":
+			// Support comma-separated patterns in global config
+			patterns := strings.Split(value, ",")
+			for _, pattern := range patterns {
+				pattern = strings.TrimSpace(pattern)
+				if pattern != "" {
+					cfg.EnvConfig.IncludePatterns = append(cfg.EnvConfig.IncludePatterns, pattern)
+				}
+			}
+		case "ENV_EXCLUDE_PATTERNS":
+			// Support comma-separated patterns in global config
+			patterns := strings.Split(value, ",")
+			for _, pattern := range patterns {
+				pattern = strings.TrimSpace(pattern)
+				if pattern != "" {
+					cfg.EnvConfig.ExcludePatterns = append(cfg.EnvConfig.ExcludePatterns, pattern)
+				}
+			}
 		}
 	}
 
 	return cfg, scanner.Err()
+}
+
+// MergeConfig merges configurations with proper precedence:
+// CLI flags > project config > global config > defaults
+func MergeConfig(globalCfg, projectCfg *Config) *Config {
+	merged := &Config{
+		// Start with defaults
+		EnvConfig: EnvConfig{
+			Enabled:      true,
+			Recursive:    true,
+			UseGitignore: true,
+		},
+	}
+	
+	// Apply global config
+	if globalCfg != nil {
+		if globalCfg.PnpmSetup != "" {
+			merged.PnpmSetup = globalCfg.PnpmSetup
+		}
+		if globalCfg.NpmSetup != "" {
+			merged.NpmSetup = globalCfg.NpmSetup
+		}
+		if globalCfg.YarnSetup != "" {
+			merged.YarnSetup = globalCfg.YarnSetup
+		}
+		if globalCfg.DefaultSetup != "" {
+			merged.DefaultSetup = globalCfg.DefaultSetup
+		}
+		
+		// Merge env config
+		merged.EnvConfig.Enabled = globalCfg.EnvConfig.Enabled
+		merged.EnvConfig.Recursive = globalCfg.EnvConfig.Recursive
+		merged.EnvConfig.UseGitignore = globalCfg.EnvConfig.UseGitignore
+		merged.EnvConfig.IncludePatterns = append(merged.EnvConfig.IncludePatterns, globalCfg.EnvConfig.IncludePatterns...)
+		merged.EnvConfig.ExcludePatterns = append(merged.EnvConfig.ExcludePatterns, globalCfg.EnvConfig.ExcludePatterns...)
+		merged.EnvConfig.CustomPatterns = append(merged.EnvConfig.CustomPatterns, globalCfg.EnvConfig.CustomPatterns...)
+	}
+	
+	// Apply project config (overrides global)
+	if projectCfg != nil {
+		merged.PostCreateScripts = projectCfg.PostCreateScripts
+		
+		if projectCfg.PnpmSetup != "" {
+			merged.PnpmSetup = projectCfg.PnpmSetup
+		}
+		if projectCfg.NpmSetup != "" {
+			merged.NpmSetup = projectCfg.NpmSetup
+		}
+		if projectCfg.YarnSetup != "" {
+			merged.YarnSetup = projectCfg.YarnSetup
+		}
+		if projectCfg.DefaultSetup != "" {
+			merged.DefaultSetup = projectCfg.DefaultSetup
+		}
+		
+		// Project env config overrides global
+		merged.EnvConfig.Enabled = projectCfg.EnvConfig.Enabled
+		merged.EnvConfig.Recursive = projectCfg.EnvConfig.Recursive
+		merged.EnvConfig.UseGitignore = projectCfg.EnvConfig.UseGitignore
+		
+		// Append patterns (don't replace, allow both to contribute)
+		merged.EnvConfig.IncludePatterns = append(merged.EnvConfig.IncludePatterns, projectCfg.EnvConfig.IncludePatterns...)
+		merged.EnvConfig.ExcludePatterns = append(merged.EnvConfig.ExcludePatterns, projectCfg.EnvConfig.ExcludePatterns...)
+		
+		// Custom patterns from project replace global ones
+		if len(projectCfg.EnvConfig.CustomPatterns) > 0 {
+			merged.EnvConfig.CustomPatterns = projectCfg.EnvConfig.CustomPatterns
+		}
+	}
+	
+	return merged
 }
