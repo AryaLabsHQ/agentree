@@ -53,7 +53,8 @@ agentree -b feature-x
 That's it! agentree will:
 - Create a new branch prefixed with `agent/` (e.g., `agent/feature-x`)
 - Set up an isolated worktree in `../myrepo-worktrees/`
-- Copy your `.env` and `.dev.vars` files
+- Intelligently discover and copy environment files based on `.gitignore`
+- Copy AI tool configs (`.claude/settings.local.json`, `.cursorrules`, etc.)
 - Run setup commands (auto-detected: npm/pnpm/yarn install, etc.)
 - Switch you to the new worktree directory
 

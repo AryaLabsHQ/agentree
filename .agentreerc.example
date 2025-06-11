@@ -1,16 +1,41 @@
-#!/usr/bin/env bash
-# Example .agentreerc - Project-specific agentree configuration
-# Copy this to .agentreerc in your project root and customize
+# agentree Configuration Example
+# This file demonstrates the new environment configuration features
 
-# Post-create scripts to run after worktree creation
-# These take precedence over auto-detection
-POST_CREATE_SCRIPTS=(
-  "pnpm install"
-  "pnpm build"
-  "pnpm test"
+# Environment Configuration
+# ========================
+
+# Enable/disable environment file copying (default: true)
+ENV_COPY_ENABLED=true
+
+# Enable recursive search for env files in monorepos (default: true)
+ENV_RECURSIVE=true
+
+# Use .gitignore patterns as source of truth (default: true)
+ENV_USE_GITIGNORE=true
+
+# Additional patterns to include beyond .gitignore
+# These patterns will be searched for and copied even if not in .gitignore
+ENV_INCLUDE_PATTERNS=(
+  "*.env.example"
+  "config/*.sample"
+  "secrets/*.template"
+  ".vscode/settings.local.json"
+  ".idea/workspace.local.xml"
 )
 
-# You can also customize based on conditions
-# if [[ -f ".env.example" ]]; then
-#   POST_CREATE_SCRIPTS+=("cp .env.example .env")
-# fi
+# Patterns to exclude even if found in .gitignore
+# Useful for excluding test or temporary env files
+ENV_EXCLUDE_PATTERNS=(
+  "*.test.env"
+  "*.temp.env"
+  "node_modules/**/.env"
+  "dist/**/.env"
+)
+
+# Post-create scripts
+# These run after worktree creation and env file copying
+POST_CREATE_SCRIPTS=(
+  "npm install"
+  "npm run build"
+  "echo 'Worktree ready for AI agent!'"
+)
