@@ -27,6 +27,7 @@ var (
 	runSetup      bool
 	interactive   bool
 	customScripts []string
+	verbose       bool
 )
 
 // createCmd represents the create command
@@ -53,6 +54,7 @@ func init() {
 	createCmd.Flags().BoolVarP(&runSetup, "setup", "s", true, "Run setup scripts (auto-detect or from config)")
 	createCmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "Interactive wizard to guide through setup")
 	createCmd.Flags().StringArrayVarP(&customScripts, "script", "S", nil, "Custom post-create script (can be used multiple times)")
+	createCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show detailed environment discovery process")
 
 	// Make branch required unless in interactive mode
 	_ = createCmd.MarkFlagRequired("branch")
@@ -70,6 +72,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&runSetup, "setup", "s", true, "Run setup scripts")
 	rootCmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "Interactive wizard")
 	rootCmd.Flags().StringArrayVarP(&customScripts, "script", "S", nil, "Custom post-create script")
+	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show detailed discovery process")
 
 	// If root command is called with flags, run create
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -197,6 +200,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		} else {
 			// Use the enhanced copier with configuration
 			copier := env.NewEnvFileCopier(repo.Root, dest)
+			copier.SetVerbose(verbose)
 			
 			// Add custom patterns from config
 			if len(mergedConfig.EnvConfig.IncludePatterns) > 0 {
@@ -208,12 +212,10 @@ func runCreate(cmd *cobra.Command, args []string) error {
 			files, err := copier.DiscoverFiles()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: Error discovering files: %v\n", err)
-				// Fall back to legacy behavior
-				copiedFiles, _ := env.CopyEnvFiles(repo.Root, dest)
-				for _, file := range copiedFiles {
-					fmt.Printf("📋 Copied %s\n", file)
-				}
-			} else {
+				files = []string{} // Continue with empty list instead of failing
+			}
+			
+			if len(files) > 0 {
 				// Filter out excluded patterns
 				var filteredFiles []string
 				for _, file := range files {
@@ -241,6 +243,8 @@ func runCreate(cmd *cobra.Command, args []string) error {
 				} else {
 					fmt.Println(infoStyle.Render("No environment files found to copy"))
 				}
+			} else {
+				fmt.Println(infoStyle.Render("No environment files found to copy"))
 			}
 		}
 	}

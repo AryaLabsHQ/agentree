@@ -11,12 +11,18 @@ import (
 
 // GitignoreParser parses .gitignore files to find environment and local files
 type GitignoreParser struct {
-	root string
+	root    string
+	verbose bool
 }
 
 // NewGitignoreParser creates a new parser for the given repository root
 func NewGitignoreParser(root string) *GitignoreParser {
 	return &GitignoreParser{root: root}
+}
+
+// SetVerbose enables verbose logging
+func (p *GitignoreParser) SetVerbose(verbose bool) {
+	p.verbose = verbose
 }
 
 // FindIgnoredEnvFiles discovers environment files based on .gitignore patterns
@@ -27,6 +33,14 @@ func (p *GitignoreParser) FindIgnoredEnvFiles() ([]string, error) {
 		return nil, err
 	}
 	
+	if p.verbose {
+		fmt.Printf("📂 Found %d .gitignore files:\n", len(gitignoreFiles))
+		for _, file := range gitignoreFiles {
+			relPath, _ := filepath.Rel(p.root, file)
+			fmt.Printf("   - %s\n", relPath)
+		}
+	}
+	
 	// Parse all .gitignore files to get patterns
 	patterns := make([]string, 0)
 	for _, gitignorePath := range gitignoreFiles {
@@ -34,16 +48,34 @@ func (p *GitignoreParser) FindIgnoredEnvFiles() ([]string, error) {
 		if err != nil {
 			continue // Skip files we can't read
 		}
+		if p.verbose && len(filePatterns) > 0 {
+			relPath, _ := filepath.Rel(p.root, gitignorePath)
+			fmt.Printf("\n   Patterns from %s:\n", relPath)
+			for _, pattern := range filePatterns {
+				fmt.Printf("     • %s\n", pattern)
+			}
+		}
 		patterns = append(patterns, filePatterns...)
 	}
 	
 	// Filter patterns that likely represent environment/config files
 	envPatterns := p.filterEnvironmentPatterns(patterns)
 	
+	if p.verbose {
+		fmt.Printf("\n🔍 Filtered to %d environment-related patterns:\n", len(envPatterns))
+		for _, pattern := range envPatterns {
+			fmt.Printf("   - %s\n", pattern)
+		}
+	}
+	
 	// Find actual files matching these patterns
 	matchedFiles, err := p.findMatchingFiles(envPatterns)
 	if err != nil {
 		return nil, err
+	}
+	
+	if p.verbose {
+		fmt.Printf("\n✅ Matched %d actual files from .gitignore patterns\n", len(matchedFiles))
 	}
 	
 	return matchedFiles, nil
