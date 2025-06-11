@@ -182,6 +182,41 @@ agentree -b experiment-ml -r
 agentree rm agent/auth-system -R
 ```
 
+## Shell Completion
+
+agentree supports tab completion for commands, flags, branch names, and worktree names.
+
+### Bash
+
+```bash
+# Add to ~/.bashrc or ~/.bash_profile:
+source <(agentree completion bash)
+```
+
+### Zsh
+
+```bash
+# Add to ~/.zshrc:
+source <(agentree completion zsh)
+
+# Or for oh-my-zsh users, add to completions directory:
+agentree completion zsh > ~/.oh-my-zsh/completions/_agentree
+```
+
+### Fish
+
+```bash
+# Add to ~/.config/fish/completions/:
+agentree completion fish > ~/.config/fish/completions/agentree.fish
+```
+
+### PowerShell
+
+```powershell
+# Add to your PowerShell profile:
+agentree completion powershell | Out-String | Invoke-Expression
+```
+
 ## Development
 
 ```bash
