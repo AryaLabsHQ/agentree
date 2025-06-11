@@ -22,6 +22,15 @@ Use -y to skip confirmation and force removal of dirty worktrees.
 Use -R to also delete the local branch after removing the worktree.`,
 	Args: cobra.ExactArgs(1),
 	RunE: runRemove,
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) != 0 {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		// Provide both branch and worktree completions
+		branches, _ := getBranchCompletions(cmd, args, toComplete)
+		worktrees, _ := getWorktreeCompletions(cmd, args, toComplete)
+		return append(branches, worktrees...), cobra.ShellCompDirectiveNoFileComp
+	},
 }
 
 var (
@@ -40,6 +49,10 @@ func init() {
 	// Define flags
 	removeCmd.Flags().BoolVarP(&force, "yes", "y", false, "Force removal without confirmation")
 	removeCmd.Flags().BoolVarP(&deleteBranch, "delete-branch", "R", false, "Also delete the local branch")
+	
+	// Copy flags to alias
+	removeAlias.Flags().BoolVarP(&force, "yes", "y", false, "Force removal without confirmation")
+	removeAlias.Flags().BoolVarP(&deleteBranch, "delete-branch", "R", false, "Also delete the local branch")
 }
 
 func runRemove(cmd *cobra.Command, args []string) error {

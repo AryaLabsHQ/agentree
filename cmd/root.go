@@ -44,6 +44,5 @@ func Execute() error {
 }
 
 func init() {
-	// Disable Cobra's default completion command
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
+	// Custom completion functions will be registered in individual command files
 }

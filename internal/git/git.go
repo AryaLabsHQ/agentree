@@ -224,3 +224,25 @@ func (r *Repository) DeleteBranch(branch string) error {
 	
 	return nil
 }
+
+// ListWorktrees returns a list of all worktree paths
+func (r *Repository) ListWorktrees() ([]string, error) {
+	cmd := exec.Command("git", "worktree", "list", "--porcelain")
+	cmd.Dir = r.Root
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list worktrees: %w", err)
+	}
+	
+	lines := strings.Split(string(output), "\n")
+	var worktrees []string
+	
+	for _, line := range lines {
+		parts := strings.Fields(line)
+		if len(parts) >= 2 && parts[0] == "worktree" {
+			worktrees = append(worktrees, parts[1])
+		}
+	}
+	
+	return worktrees, nil
+}
