@@ -58,6 +58,10 @@ func init() {
 
 	// Make branch required unless in interactive mode
 	_ = createCmd.MarkFlagRequired("branch")
+	
+	// Register custom completion functions
+	_ = createCmd.RegisterFlagCompletionFunc("from", getBranchCompletions)
+	_ = createCmd.RegisterFlagCompletionFunc("base", getBranchCompletions)
 }
 
 // For backward compatibility, also make flags available at root level
