@@ -1,0 +1,32 @@
+# Example .agentreerc configuration with sync settings
+
+# Enable automatic sync-back of environment files on remove
+ENV_SYNC_BACK_ON_REMOVE=true
+
+# Patterns for files to sync back (if not specified, uses the same patterns as copy)
+ENV_SYNC_PATTERNS=(
+  ".env"
+  ".env.local"
+  ".dev.vars"
+  ".claude/settings.local.json"
+  ".cursorrules"
+)
+
+# You can also configure which files to copy to new worktrees
+ENV_INCLUDE_PATTERNS=(
+  "**/.env*"
+  "**/*.local"
+  ".claude/settings.local.json"
+)
+
+# Exclude certain patterns even if they match
+ENV_EXCLUDE_PATTERNS=(
+  "node_modules/**"
+  ".git/**"
+)
+
+# Post-create scripts
+POST_CREATE_SCRIPTS=(
+  "pnpm install"
+  "pnpm build"
+)
