@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/AryaLabsHQ/agentree/internal/env"
-	"github.com/AryaLabsHQ/agentree/internal/git"
 )
 
 func TestRemoveWithSync(t *testing.T) {
