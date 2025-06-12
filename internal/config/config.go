@@ -36,6 +36,10 @@ type EnvConfig struct {
 	UseGitignore bool
 	// Custom environment file patterns (overrides defaults if set)
 	CustomPatterns []string
+	// Whether to sync environment files back on remove (default: false)
+	SyncBackOnRemove bool
+	// Patterns for files to sync back (if empty, uses IncludePatterns)
+	SyncPatterns []string
 }
 
 // LoadProjectConfig loads configuration from .agentreerc in the project root
@@ -68,6 +72,7 @@ func LoadProjectConfig(projectRoot string) (*Config, error) {
 	inPostCreateScripts := false
 	inEnvIncludePatterns := false
 	inEnvExcludePatterns := false
+	inEnvSyncPatterns := false
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -85,6 +90,8 @@ func LoadProjectConfig(projectRoot string) (*Config, error) {
 				inEnvIncludePatterns = false
 			} else if inEnvExcludePatterns {
 				inEnvExcludePatterns = false
+			} else if inEnvSyncPatterns {
+				inEnvSyncPatterns = false
 			}
 			continue
 		}
@@ -107,6 +114,12 @@ func LoadProjectConfig(projectRoot string) (*Config, error) {
 			continue
 		}
 
+		// Look for ENV_SYNC_PATTERNS array
+		if strings.Contains(line, "ENV_SYNC_PATTERNS=(") {
+			inEnvSyncPatterns = true
+			continue
+		}
+
 		// Handle array contents
 		if inPostCreateScripts {
 			// Extract script from quotes
@@ -124,6 +137,11 @@ func LoadProjectConfig(projectRoot string) (*Config, error) {
 			if pattern != "" {
 				cfg.EnvConfig.ExcludePatterns = append(cfg.EnvConfig.ExcludePatterns, pattern)
 			}
+		} else if inEnvSyncPatterns {
+			pattern := strings.Trim(line, ` "',`)
+			if pattern != "" {
+				cfg.EnvConfig.SyncPatterns = append(cfg.EnvConfig.SyncPatterns, pattern)
+			}
 		} else {
 			// Handle key=value pairs for env config
 			if strings.HasPrefix(line, "ENV_") {
@@ -139,6 +157,8 @@ func LoadProjectConfig(projectRoot string) (*Config, error) {
 						cfg.EnvConfig.Recursive = value == "true" || value == "1"
 					case "ENV_USE_GITIGNORE":
 						cfg.EnvConfig.UseGitignore = value == "true" || value == "1"
+					case "ENV_SYNC_BACK_ON_REMOVE":
+						cfg.EnvConfig.SyncBackOnRemove = value == "true" || value == "1"
 					}
 				}
 			}
@@ -244,6 +264,17 @@ func LoadGlobalConfig() (*Config, error) {
 					cfg.EnvConfig.ExcludePatterns = append(cfg.EnvConfig.ExcludePatterns, pattern)
 				}
 			}
+		case "ENV_SYNC_BACK_ON_REMOVE":
+			cfg.EnvConfig.SyncBackOnRemove = value == "true" || value == "1"
+		case "ENV_SYNC_PATTERNS":
+			// Support comma-separated patterns in global config
+			patterns := strings.Split(value, ",")
+			for _, pattern := range patterns {
+				pattern = strings.TrimSpace(pattern)
+				if pattern != "" {
+					cfg.EnvConfig.SyncPatterns = append(cfg.EnvConfig.SyncPatterns, pattern)
+				}
+			}
 		}
 	}
 
@@ -281,9 +312,11 @@ func MergeConfig(globalCfg, projectCfg *Config) *Config {
 		merged.EnvConfig.Enabled = globalCfg.EnvConfig.Enabled
 		merged.EnvConfig.Recursive = globalCfg.EnvConfig.Recursive
 		merged.EnvConfig.UseGitignore = globalCfg.EnvConfig.UseGitignore
+		merged.EnvConfig.SyncBackOnRemove = globalCfg.EnvConfig.SyncBackOnRemove
 		merged.EnvConfig.IncludePatterns = append(merged.EnvConfig.IncludePatterns, globalCfg.EnvConfig.IncludePatterns...)
 		merged.EnvConfig.ExcludePatterns = append(merged.EnvConfig.ExcludePatterns, globalCfg.EnvConfig.ExcludePatterns...)
 		merged.EnvConfig.CustomPatterns = append(merged.EnvConfig.CustomPatterns, globalCfg.EnvConfig.CustomPatterns...)
+		merged.EnvConfig.SyncPatterns = append(merged.EnvConfig.SyncPatterns, globalCfg.EnvConfig.SyncPatterns...)
 	}
 	
 	// Apply project config (overrides global)
@@ -307,10 +340,12 @@ func MergeConfig(globalCfg, projectCfg *Config) *Config {
 		merged.EnvConfig.Enabled = projectCfg.EnvConfig.Enabled
 		merged.EnvConfig.Recursive = projectCfg.EnvConfig.Recursive
 		merged.EnvConfig.UseGitignore = projectCfg.EnvConfig.UseGitignore
+		merged.EnvConfig.SyncBackOnRemove = projectCfg.EnvConfig.SyncBackOnRemove
 		
 		// Append patterns (don't replace, allow both to contribute)
 		merged.EnvConfig.IncludePatterns = append(merged.EnvConfig.IncludePatterns, projectCfg.EnvConfig.IncludePatterns...)
 		merged.EnvConfig.ExcludePatterns = append(merged.EnvConfig.ExcludePatterns, projectCfg.EnvConfig.ExcludePatterns...)
+		merged.EnvConfig.SyncPatterns = append(merged.EnvConfig.SyncPatterns, projectCfg.EnvConfig.SyncPatterns...)
 		
 		// Custom patterns from project replace global ones
 		if len(projectCfg.EnvConfig.CustomPatterns) > 0 {
