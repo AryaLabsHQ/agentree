@@ -1,0 +1,94 @@
+# Advanced multiplexer configuration with per-instance settings
+# Place this file as .agentree-multiplex.yml in your project root
+
+# Global settings
+auto_start: true
+token_limit: 200000
+theme: nord
+log_level: debug
+
+# Specific instance configurations
+instances:
+  # Frontend development instance
+  - worktree: feat-ui
+    auto_start: true
+    token_limit: 50000
+    role: developer
+    environment:
+      - CLAUDE_ROLE=frontend
+      - FOCUS_AREA=components,styling
+  
+  # Backend API instance
+  - worktree: feat-api
+    auto_start: true
+    token_limit: 75000
+    role: developer
+    environment:
+      - CLAUDE_ROLE=backend
+      - FOCUS_AREA=endpoints,database
+  
+  # Testing instance
+  - worktree: feat-tests
+    auto_start: false
+    token_limit: 30000
+    role: reviewer
+    environment:
+      - CLAUDE_ROLE=tester
+      - FOCUS_AREA=unit_tests,integration
+  
+  # Documentation instance
+  - worktree: feat-docs
+    auto_start: false
+    token_limit: 25000
+    role: specialist
+    environment:
+      - CLAUDE_ROLE=documenter
+      - FOCUS_AREA=api_docs,guides
+
+# Enhanced UI settings
+ui:
+  sidebar_width: 30
+  show_token_usage: true
+  show_timestamps: true
+  scrollback_size: 20000
+  theme: nord
+
+# Multi-instance coordination
+coordination:
+  # Enable shared context between instances
+  shared_context: true
+  
+  # How often to sync shared context
+  sync_interval: 30s
+  
+  # Enable inter-process communication
+  enable_ipc: true
+
+# Custom shortcuts
+shortcuts:
+  # Navigation
+  next: "j"
+  prev: "k"
+  focus: "Enter"
+  
+  # Instance control
+  start: "s"
+  stop: "x"
+  restart: "r"
+  start_all: "S"
+  stop_all: "X"
+  
+  # View control
+  toggle_sidebar: "b"
+  toggle_timestamps: "t"
+  toggle_tokens: "T"
+  
+  # Output control
+  clear: "c"
+  clear_all: "C"
+  save_output: "w"
+  
+  # System
+  help: "?"
+  quit: "q"
+  force_quit: "Q"

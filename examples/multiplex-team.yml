@@ -1,0 +1,108 @@
+# Team collaboration configuration
+# Demonstrates role-based instance setup
+
+auto_start: true
+token_limit: 500000
+theme: dark
+log_level: info
+
+# Team member instances with specific roles
+instances:
+  # Lead developer - oversees architecture
+  - worktree: main
+    auto_start: true
+    token_limit: 100000
+    role: coordinator
+    environment:
+      - CLAUDE_ROLE=lead_developer
+      - CLAUDE_CAPABILITIES=architecture,code_review,planning
+  
+  # Frontend specialist
+  - worktree: feat-ui-components
+    auto_start: true
+    token_limit: 80000
+    role: developer
+    environment:
+      - CLAUDE_ROLE=frontend_developer
+      - CLAUDE_FOCUS=react,typescript,css
+      - CLAUDE_CAPABILITIES=component_development,styling
+  
+  # Backend specialist
+  - worktree: feat-api-services
+    auto_start: true
+    token_limit: 80000
+    role: developer
+    environment:
+      - CLAUDE_ROLE=backend_developer
+      - CLAUDE_FOCUS=nodejs,database,api
+      - CLAUDE_CAPABILITIES=api_development,database_design
+  
+  # QA engineer
+  - worktree: feat-testing
+    auto_start: true
+    token_limit: 60000
+    role: reviewer
+    environment:
+      - CLAUDE_ROLE=qa_engineer
+      - CLAUDE_FOCUS=testing,quality
+      - CLAUDE_CAPABILITIES=test_writing,bug_finding
+  
+  # DevOps specialist
+  - worktree: feat-infrastructure
+    auto_start: false
+    token_limit: 60000
+    role: specialist
+    environment:
+      - CLAUDE_ROLE=devops_engineer
+      - CLAUDE_FOCUS=deployment,ci_cd,monitoring
+      - CLAUDE_CAPABILITIES=infrastructure,automation
+
+# UI optimized for team collaboration
+ui:
+  sidebar_width: 35  # Wider to show role info
+  show_token_usage: true
+  show_timestamps: true
+  scrollback_size: 50000  # Large buffer for code reviews
+  theme: dark
+
+# Coordination settings for team work
+coordination:
+  # Enable shared context for team awareness
+  shared_context: true
+  sync_interval: 15s  # Faster sync for real-time collaboration
+  
+  # Enable IPC for direct instance communication
+  enable_ipc: true
+  
+  # Task distribution settings
+  task_distribution:
+    enabled: true
+    coordinator: main  # Lead developer coordinates
+    auto_assign: true  # Automatically assign tasks based on role
+  
+  # Code ownership tracking
+  file_locking:
+    enabled: true
+    timeout: 30m  # Release locks after 30 minutes
+
+# Team-oriented shortcuts
+shortcuts:
+  # Quick navigation between team members
+  next_member: "Tab"
+  prev_member: "Shift+Tab"
+  
+  # Communication
+  broadcast_message: "B"
+  send_to_lead: "L"
+  
+  # Task management
+  assign_task: "A"
+  complete_task: "D"
+  view_tasks: "T"
+  
+  # Standard controls
+  start: "s"
+  stop: "x"
+  restart: "r"
+  quit: "q"
+  help: "?"

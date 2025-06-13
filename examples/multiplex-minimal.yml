@@ -1,0 +1,4 @@
+# Minimal multiplexer configuration
+# Uses all defaults except for token limit
+
+token_limit: 50000

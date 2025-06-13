@@ -1,0 +1,49 @@
+# Basic multiplexer configuration
+# Place this file as .agentree-multiplex.yml in your project root
+
+# Automatically start all instances on launch
+auto_start: false
+
+# Global token limit across all instances
+token_limit: 100000
+
+# UI theme (dark, light, nord)
+theme: dark
+
+# Log level (debug, info, warn, error)
+log_level: info
+
+# UI configuration
+ui:
+  # Width of the sidebar in characters
+  sidebar_width: 25
+  
+  # Show token usage in status bar
+  show_token_usage: true
+  
+  # Show timestamps in output
+  show_timestamps: false
+  
+  # Number of lines to keep in scrollback
+  scrollback_size: 10000
+  
+  # Theme override for UI
+  theme: dark
+
+# Keyboard shortcuts (single character)
+shortcuts:
+  quit: "q"
+  start: "s"
+  stop: "x"
+  restart: "r"
+  next: "j"
+  prev: "k"
+  focus: "Enter"
+  scroll_up: "Up"
+  scroll_down: "Down"
+  page_up: "PgUp"
+  page_down: "PgDn"
+  home: "Home"
+  end: "End"
+  clear: "c"
+  help: "?"
