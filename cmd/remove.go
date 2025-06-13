@@ -99,8 +99,10 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		// Get main worktree path
 		mainPath, err := repo.GetMainWorktreePath()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, errorStyle.Render(fmt.Sprintf("Error getting main worktree: %v", err)))
-			return err
+			fmt.Fprintln(os.Stderr, warningStyle.Render(fmt.Sprintf("Warning: Could not get main worktree path: %v", err)))
+			fmt.Fprintln(os.Stderr, warningStyle.Render("Skipping environment file sync"))
+			// Continue with remove operation
+			goto skipSync
 		}
 		
 		// Resolve the worktree path to absolute
@@ -140,6 +142,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 			}
 		}
 	}
+skipSync:
 
 	// Confirm if not forced
 	if !force {

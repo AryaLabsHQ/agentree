@@ -1,8 +1,10 @@
 package env
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -60,20 +62,33 @@ func TestEnvFileSyncer_SyncModifiedFiles(t *testing.T) {
 		t.Errorf("Expected synced content 'MODIFIED=true', got '%s'", string(content))
 	}
 	
-	// Verify backup was created
-	backupFile := mainEnvFile + ".backup"
-	if _, err := os.Stat(backupFile); os.IsNotExist(err) {
-		t.Error("Backup file was not created")
-	}
-	
-	// Verify backup content
-	backupContent, err := os.ReadFile(backupFile)
+	// Verify backup was created (with timestamp pattern)
+	dir := filepath.Dir(mainEnvFile)
+	entries, err := os.ReadDir(dir)
 	if err != nil {
-		t.Fatalf("Failed to read backup file: %v", err)
+		t.Fatalf("Failed to read directory: %v", err)
 	}
 	
-	if string(backupContent) != "ORIGINAL=true" {
-		t.Errorf("Expected backup content 'ORIGINAL=true', got '%s'", string(backupContent))
+	var backupFile string
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), ".env.backup.") {
+			backupFile = filepath.Join(dir, entry.Name())
+			break
+		}
+	}
+	
+	if backupFile == "" {
+		t.Error("Backup file was not created")
+	} else {
+		// Verify backup content
+		backupContent, err := os.ReadFile(backupFile)
+		if err != nil {
+			t.Fatalf("Failed to read backup file: %v", err)
+		}
+		
+		if string(backupContent) != "ORIGINAL=true" {
+			t.Errorf("Expected backup content 'ORIGINAL=true', got '%s'", string(backupContent))
+		}
 	}
 }
 
@@ -167,5 +182,51 @@ func TestEnvFileSyncer_SkipNewFiles(t *testing.T) {
 	mainFile := filepath.Join(mainDir, ".env.local")
 	if _, err := os.Stat(mainFile); !os.IsNotExist(err) {
 		t.Error("New file should not have been created in main")
+	}
+}
+
+func TestEnvFileSyncer_CleanupOldBackups(t *testing.T) {
+	// Create temporary directory
+	tempDir := t.TempDir()
+	
+	// Create a test file
+	testFile := filepath.Join(tempDir, ".env")
+	if err := os.WriteFile(testFile, []byte("TEST=true"), 0644); err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+	
+	// Create old backup files
+	oldTime := time.Now().Add(-8 * 24 * time.Hour) // 8 days ago
+	oldTimestamp := oldTime.Format("20060102-150405")
+	oldBackup := filepath.Join(tempDir, fmt.Sprintf(".env.backup.%s", oldTimestamp))
+	if err := os.WriteFile(oldBackup, []byte("OLD=true"), 0644); err != nil {
+		t.Fatalf("Failed to create old backup: %v", err)
+	}
+	
+	// Create recent backup files
+	recentTime := time.Now().Add(-2 * 24 * time.Hour) // 2 days ago
+	recentTimestamp := recentTime.Format("20060102-150405")
+	recentBackup := filepath.Join(tempDir, fmt.Sprintf(".env.backup.%s", recentTimestamp))
+	if err := os.WriteFile(recentBackup, []byte("RECENT=true"), 0644); err != nil {
+		t.Fatalf("Failed to create recent backup: %v", err)
+	}
+	
+	// Create syncer
+	syncer := NewEnvFileSyncer(tempDir, tempDir)
+	
+	// Run cleanup
+	err := syncer.cleanupOldBackups(testFile)
+	if err != nil {
+		t.Fatalf("cleanupOldBackups failed: %v", err)
+	}
+	
+	// Verify old backup was removed
+	if _, err := os.Stat(oldBackup); !os.IsNotExist(err) {
+		t.Error("Old backup should have been removed")
+	}
+	
+	// Verify recent backup still exists
+	if _, err := os.Stat(recentBackup); os.IsNotExist(err) {
+		t.Error("Recent backup should not have been removed")
 	}
 }
