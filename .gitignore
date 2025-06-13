@@ -62,3 +62,5 @@ venv/
 .env
 
 .dev.vars
+
+*.internal.md

@@ -246,3 +246,26 @@ func (r *Repository) ListWorktrees() ([]string, error) {
 	
 	return worktrees, nil
 }
+
+// GetMainWorktreePath returns the path to the main worktree
+// The main worktree is always the first one in the list
+func (r *Repository) GetMainWorktreePath() (string, error) {
+	cmd := exec.Command("git", "worktree", "list", "--porcelain")
+	cmd.Dir = r.Root
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to list worktrees: %w", err)
+	}
+	
+	lines := strings.Split(string(output), "\n")
+	
+	// The first worktree entry is always the main worktree
+	for _, line := range lines {
+		parts := strings.Fields(line)
+		if len(parts) >= 2 && parts[0] == "worktree" {
+			return parts[1], nil
+		}
+	}
+	
+	return "", fmt.Errorf("no main worktree found")
+}
