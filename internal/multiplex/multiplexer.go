@@ -5,10 +5,13 @@ import (
 	"context"
 	"fmt"
 	"sync"
-
-	"github.com/AryaLabsHQ/agentree/internal/multiplex/ui"
-	"github.com/gdamore/tcell/v2"
 )
+
+// UIController interface defines the UI controller contract
+type UIController interface {
+	Run(ctx context.Context) error
+	Stop()
+}
 
 // Multiplexer manages multiple Claude Code instances in a TUI
 type Multiplexer struct {
@@ -18,7 +21,7 @@ type Multiplexer struct {
 	// Core components
 	processManager *ProcessManager
 	eventDispatcher *EventDispatcher
-	uiController   *ui.Controller
+	uiController   UIController
 	
 	// State
 	ctx    context.Context
@@ -52,6 +55,16 @@ func New(config *Config, worktrees []string) (*Multiplexer, error) {
 	}
 
 	return m, nil
+}
+
+// SetUIController sets the UI controller
+func (m *Multiplexer) SetUIController(ui UIController) {
+	m.uiController = ui
+}
+
+// GetEventChannel returns the event channel for sending events
+func (m *Multiplexer) GetEventChannel() chan<- Event {
+	return m.eventDispatcher.Events()
 }
 
 // Run starts the multiplexer and blocks until exit
@@ -92,17 +105,8 @@ func (m *Multiplexer) initialize() error {
 		m.processManager.AddInstance(instance)
 	}
 
-	// Create UI controller
-	screen, err := tcell.NewScreen()
-	if err != nil {
-		return fmt.Errorf("failed to create screen: %w", err)
-	}
-
-	if err := screen.Init(); err != nil {
-		return fmt.Errorf("failed to initialize screen: %w", err)
-	}
-
-	m.uiController = ui.NewController(screen, m.eventDispatcher.Events())
+	// UI controller will be set externally to avoid import cycle
+	// The cmd package will create the UI controller and set it
 
 	// Register event handlers
 	m.registerEventHandlers()

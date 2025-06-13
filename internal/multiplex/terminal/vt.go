@@ -3,9 +3,7 @@ package terminal
 
 import (
 	"bytes"
-	"fmt"
 	"sync"
-	"unicode/utf8"
 )
 
 // Cell represents a single character cell in the terminal

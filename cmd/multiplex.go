@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/AryaLabsHQ/agentree/internal/multiplex"
+	"github.com/AryaLabsHQ/agentree/internal/multiplex/ui"
+	"github.com/gdamore/tcell/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -87,14 +89,28 @@ func runMultiplex(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no worktrees specified. Use --all or provide worktree names")
 	}
 
-	// Create and run multiplexer
+	// Create multiplexer
 	m, err := multiplex.New(config, worktrees)
 	if err != nil {
 		return fmt.Errorf("failed to create multiplexer: %w", err)
 	}
 
+	// Create UI controller
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		return fmt.Errorf("failed to create screen: %w", err)
+	}
+
+	if err := screen.Init(); err != nil {
+		return fmt.Errorf("failed to initialize screen: %w", err)
+	}
+
+	uiController := ui.NewController(screen, m.GetEventChannel())
+	m.SetUIController(uiController)
+
 	// Run the multiplexer (blocks until exit)
 	if err := m.Run(); err != nil {
+		screen.Fini() // Clean up screen on error
 		return fmt.Errorf("multiplexer error: %w", err)
 	}
 

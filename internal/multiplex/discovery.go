@@ -11,8 +11,8 @@ import (
 
 // DiscoverWorktrees finds all worktrees in the current repository
 func DiscoverWorktrees() ([]string, error) {
-	// Get current directory
-	cwd, err := os.Getwd()
+	// Get current directory for repository detection
+	_, err := os.Getwd()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current directory: %w", err)
 	}

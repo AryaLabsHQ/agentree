@@ -2,7 +2,6 @@ package multiplex
 
 import (
 	"encoding/json"
-	"fmt"
 	"sync"
 	"time"
 )
