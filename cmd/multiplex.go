@@ -72,6 +72,14 @@ func runMultiplex(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 		config = loadedConfig
+		
+		// Override command-line flags with loaded config
+		if !cmd.Flags().Changed("auto-start") {
+			autoStart = config.AutoStart
+		}
+		if !cmd.Flags().Changed("token-limit") {
+			tokenLimit = config.TokenLimit
+		}
 	}
 
 	// Determine which worktrees to use
@@ -84,9 +92,19 @@ func runMultiplex(cmd *cobra.Command, args []string) error {
 		worktrees = discovered
 	} else if len(args) > 0 {
 		worktrees = args
+	} else if config != nil && len(config.Instances) > 0 {
+		// Use worktrees from config instances
+		for _, instance := range config.Instances {
+			if instance.Worktree != "" {
+				worktrees = append(worktrees, instance.Worktree)
+			}
+		}
+		if len(worktrees) == 0 {
+			return fmt.Errorf("no worktrees found in configuration file")
+		}
 	} else {
 		// No worktrees specified
-		return fmt.Errorf("no worktrees specified. Use --all or provide worktree names")
+		return fmt.Errorf("no worktrees specified. Use --all, provide worktree names, or define instances in config")
 	}
 
 	// Create multiplexer
