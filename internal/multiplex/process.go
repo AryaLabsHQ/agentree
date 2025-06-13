@@ -1,11 +1,11 @@
 package multiplex
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -99,6 +99,41 @@ func (pm *ProcessManager) GetInstances() []*Instance {
 	return instances
 }
 
+// GetInstance returns a specific instance
+func (pm *ProcessManager) GetInstance(id string) (*Instance, error) {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+	
+	instance, exists := pm.instances[id]
+	if !exists {
+		return nil, fmt.Errorf("instance %s not found", id)
+	}
+	return instance, nil
+}
+
+// SendInput sends input to an instance's PTY
+func (pm *ProcessManager) SendInput(id string, input string) error {
+	instance, err := pm.GetInstance(id)
+	if err != nil {
+		return err
+	}
+	
+	instance.mu.Lock()
+	defer instance.mu.Unlock()
+	
+	if instance.State != StateRunning && instance.State != StateThinking {
+		return fmt.Errorf("instance not running")
+	}
+	
+	if instance.PTY == nil {
+		return fmt.Errorf("PTY not available")
+	}
+	
+	// Write input to PTY
+	_, err = instance.PTY.Write([]byte(input))
+	return err
+}
+
 // StartInstance starts a Claude Code instance
 func (pm *ProcessManager) StartInstance(id string) error {
 	pm.mu.Lock()
@@ -125,7 +160,16 @@ func (pm *ProcessManager) StartInstance(id string) error {
 	pm.events <- NewProcessStateEvent(id, oldState, StateStarting)
 	
 	// Create command
-	cmd := exec.Command("claude", "code")
+	cmdPath := "claude"
+	cmdArgs := []string{"code"}
+	
+	// Allow override for testing
+	if mockPath := os.Getenv("MOCK_CLAUDE_PATH"); mockPath != "" {
+		cmdPath = mockPath
+		cmdArgs = []string{"code"}
+	}
+	
+	cmd := exec.Command(cmdPath, cmdArgs...)
 	cmd.Dir = instance.Worktree
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("AGENTREE_INSTANCE_ID=%s", id),
@@ -215,24 +259,36 @@ func (pm *ProcessManager) StopAll() {
 
 // readOutput reads output from an instance
 func (pm *ProcessManager) readOutput(instance *Instance) {
-	scanner := bufio.NewScanner(instance.PTY)
+	// Create a larger buffer for PTY output
+	buf := make([]byte, 4096)
 	
-	for scanner.Scan() {
-		data := scanner.Bytes()
+	for {
+		n, err := instance.PTY.Read(buf)
+		if err != nil {
+			// Connection closed
+			break
+		}
 		
-		// Feed to virtual terminal
-		instance.VT.Write(data)
-		
-		// Parse for token usage
-		// TODO: Implement token parsing
-		
-		// Send output event
-		pm.events <- NewProcessOutputEvent(instance.ID, data)
-		
-		// Update last active
-		instance.mu.Lock()
-		instance.LastActive = time.Now()
-		instance.mu.Unlock()
+		if n > 0 {
+			data := buf[:n]
+			
+			// Feed to virtual terminal
+			instance.VT.Write(data)
+			
+			// Parse for token usage
+			instance.TokenUsage.ParseOutput(data)
+			
+			// Check for state changes in output
+			pm.detectStateChange(instance, data)
+			
+			// Send output event
+			pm.events <- NewProcessOutputEvent(instance.ID, data)
+			
+			// Update last active
+			instance.mu.Lock()
+			instance.LastActive = time.Now()
+			instance.mu.Unlock()
+		}
 	}
 	
 	// Handle completion
@@ -242,6 +298,33 @@ func (pm *ProcessManager) readOutput(instance *Instance) {
 		pm.events <- NewProcessStateEvent(instance.ID, StateRunning, StateCrashed)
 	}
 	instance.mu.Unlock()
+}
+
+// detectStateChange checks output for state indicators
+func (pm *ProcessManager) detectStateChange(instance *Instance, data []byte) {
+	output := string(data)
+	
+	instance.mu.Lock()
+	oldState := instance.State
+	newState := oldState
+	
+	// Check for thinking state
+	if strings.Contains(output, "(thinking...)") || strings.Contains(output, "analyzing") {
+		if oldState == StateRunning {
+			newState = StateThinking
+		}
+	} else if strings.Contains(output, "Assistant:") && oldState == StateThinking {
+		// Back to running after thinking
+		newState = StateRunning
+	}
+	
+	if newState != oldState {
+		instance.State = newState
+		instance.mu.Unlock()
+		pm.events <- NewProcessStateEvent(instance.ID, oldState, newState)
+	} else {
+		instance.mu.Unlock()
+	}
 }
 
 // checkInstances monitors instance health

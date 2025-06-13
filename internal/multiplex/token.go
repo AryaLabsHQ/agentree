@@ -34,6 +34,11 @@ type TokenPatterns struct {
 	
 	// Cost patterns
 	costPattern      *regexp.Regexp
+	
+	// Additional patterns
+	humanPattern     *regexp.Regexp
+	assistantPattern *regexp.Regexp
+	totalPattern     *regexp.Regexp
 }
 
 // NewTokenTracker creates a new token tracker
@@ -51,6 +56,11 @@ func NewTokenTracker() *TokenTracker {
 			
 			// Pattern for cost estimation
 			costPattern: regexp.MustCompile(`(?i)cost\s*[:\-\s]\s*\$?([0-9.]+)`),
+			
+			// Additional patterns for different output formats
+			humanPattern:     regexp.MustCompile(`(?i)Human:\s*(\d+)\s*tokens?`),
+			assistantPattern: regexp.MustCompile(`(?i)Assistant:\s*(\d+)\s*tokens?`),
+			totalPattern:     regexp.MustCompile(`(?i)Total\s*tokens?\s*(?:used)?\s*[:\-\s]\s*(\d+)`),
 		},
 		listeners: make([]func(TokenUsage), 0),
 	}
@@ -132,6 +142,9 @@ func (tt *TokenTracker) tryParseAPIFormat(data []byte) bool {
 // tryParseLines tries line-by-line parsing
 func (tt *TokenTracker) tryParseLines(data []byte) {
 	scanner := bufio.NewScanner(bytes.NewReader(data))
+	var humanTokens, assistantTokens int64
+	var foundAny bool
+	
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		
@@ -143,6 +156,32 @@ func (tt *TokenTracker) tryParseLines(data []byte) {
 			return
 		}
 		
+		// Check for Human/Assistant patterns
+		if matches := tt.patterns.humanPattern.FindSubmatch(line); len(matches) >= 2 {
+			if val, err := strconv.ParseInt(string(matches[1]), 10, 64); err == nil {
+				humanTokens = val
+				foundAny = true
+			}
+		}
+		
+		if matches := tt.patterns.assistantPattern.FindSubmatch(line); len(matches) >= 2 {
+			if val, err := strconv.ParseInt(string(matches[1]), 10, 64); err == nil {
+				assistantTokens = val
+				foundAny = true
+			}
+		}
+		
+		// Check for total tokens
+		if matches := tt.patterns.totalPattern.FindSubmatch(line); len(matches) >= 2 {
+			if val, err := strconv.ParseInt(string(matches[1]), 10, 64); err == nil {
+				// If we have total but not input/output, assume it's all output
+				if humanTokens == 0 && assistantTokens == 0 {
+					assistantTokens = val
+				}
+				foundAny = true
+			}
+		}
+		
 		// Check for cost information
 		if matches := tt.patterns.costPattern.FindSubmatch(line); len(matches) >= 2 {
 			if cost, err := strconv.ParseFloat(string(matches[1]), 64); err == nil {
@@ -151,6 +190,11 @@ func (tt *TokenTracker) tryParseLines(data []byte) {
 				tt.mu.Unlock()
 			}
 		}
+	}
+	
+	// Update if we found any tokens
+	if foundAny && (humanTokens > 0 || assistantTokens > 0) {
+		tt.updateUsage(humanTokens, assistantTokens)
 	}
 }
 
