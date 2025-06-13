@@ -6,9 +6,9 @@ agentree now supports syncing environment files back to the main worktree when r
 
 When you remove a worktree, agentree can automatically sync modified environment files back to the main worktree. Only files that:
 1. Exist in both the worktree and main worktree
-2. Have been modified (newer timestamp in the worktree)
+2. Have been modified (newer timestamp in the worktree AND different content)
 
-Will be synced back. New files created in the worktree are not synced to avoid accidentally committing sensitive files.
+Will be synced back. This dual check prevents unnecessary syncs when only timestamps differ but content remains the same. New files created in the worktree are not synced to avoid accidentally committing sensitive files.
 
 ## Usage
 

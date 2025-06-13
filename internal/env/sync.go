@@ -86,8 +86,14 @@ func (s *EnvFileSyncer) SyncModifiedFiles() ([]string, error) {
 			return syncedFiles, fmt.Errorf("failed to stat %s in main: %w", file, err)
 		}
 		
-		// Compare modification times
-		if worktreeInfo.ModTime().After(mainInfo.ModTime()) {
+		// Check if file has been modified (timestamp and content comparison)
+		modified, err := s.isFileModified(worktreePath, mainPath, worktreeInfo, mainInfo)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to compare %s: %v\n", file, err)
+			continue
+		}
+		
+		if modified {
 			if s.verbose {
 				fmt.Printf("📝 File %s modified (worktree: %s, main: %s)\n", 
 					file, 
@@ -142,18 +148,26 @@ func (s *EnvFileSyncer) createBackup(src, dst string) error {
 	return copyFile(src, dst)
 }
 
-// CompareFiles checks if two files have different content
-func (s *EnvFileSyncer) CompareFiles(file1, file2 string) (bool, error) {
-	content1, err := os.ReadFile(file1)
-	if err != nil {
-		return false, err
+// isFileModified checks if a file has been modified by comparing both timestamps and content
+func (s *EnvFileSyncer) isFileModified(worktreePath, mainPath string, worktreeInfo, mainInfo os.FileInfo) (bool, error) {
+	// First check timestamps - if worktree is older, it's definitely not modified
+	if !worktreeInfo.ModTime().After(mainInfo.ModTime()) {
+		return false, nil
 	}
 	
-	content2, err := os.ReadFile(file2)
+	// Timestamps indicate modification, but let's verify with content comparison
+	// This handles cases where timestamps changed but content didn't
+	content1, err := os.ReadFile(worktreePath)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to read worktree file: %w", err)
 	}
 	
+	content2, err := os.ReadFile(mainPath)
+	if err != nil {
+		return false, fmt.Errorf("failed to read main file: %w", err)
+	}
+	
+	// Files are different if content differs
 	return string(content1) != string(content2), nil
 }
 

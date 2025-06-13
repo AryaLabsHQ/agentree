@@ -229,3 +229,50 @@ func TestEnvFileSyncer_BackupRestoration(t *testing.T) {
 	// The content might be corrupted during failed write, but that's OK
 	// The important thing is that we attempted to sync and handle errors gracefully
 }
+
+func TestEnvFileSyncer_SkipIdenticalContent(t *testing.T) {
+	// Create temporary directories
+	tempDir := t.TempDir()
+	mainDir := filepath.Join(tempDir, "main")
+	worktreeDir := filepath.Join(tempDir, "worktree")
+	
+	// Create directories
+	if err := os.MkdirAll(mainDir, 0755); err != nil {
+		t.Fatalf("Failed to create main dir: %v", err)
+	}
+	if err := os.MkdirAll(worktreeDir, 0755); err != nil {
+		t.Fatalf("Failed to create worktree dir: %v", err)
+	}
+	
+	// Create identical files with same content
+	content := []byte("IDENTICAL=true")
+	mainFile := filepath.Join(mainDir, ".env")
+	worktreeFile := filepath.Join(worktreeDir, ".env")
+	
+	// Create main file first
+	if err := os.WriteFile(mainFile, content, 0644); err != nil {
+		t.Fatalf("Failed to create main file: %v", err)
+	}
+	
+	// Sleep to ensure different timestamp
+	time.Sleep(10 * time.Millisecond)
+	
+	// Create worktree file with same content but newer timestamp
+	if err := os.WriteFile(worktreeFile, content, 0644); err != nil {
+		t.Fatalf("Failed to create worktree file: %v", err)
+	}
+	
+	// Create syncer
+	syncer := NewEnvFileSyncer(worktreeDir, mainDir)
+	
+	// Perform sync
+	syncedFiles, err := syncer.SyncModifiedFiles()
+	if err != nil {
+		t.Fatalf("SyncModifiedFiles failed: %v", err)
+	}
+	
+	// Should not sync files with identical content despite newer timestamp
+	if len(syncedFiles) != 0 {
+		t.Errorf("Expected 0 synced files (identical content), got %d", len(syncedFiles))
+	}
+}
