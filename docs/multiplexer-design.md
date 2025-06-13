@@ -17,18 +17,18 @@ The Agentree Multiplexer is a terminal-based UI system for managing multiple Cla
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Multiplexer Core                      │
+│                        Multiplexer Core                     │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐  │
-│  │Process      │  │Event         │  │UI                 │  │
-│  │Manager      │  │Dispatcher    │  │Controller         │  │
-│  └─────────────┘  └──────────────┘  └───────────────────┘  │
+│  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐   │
+│  │Process      │  │Event         │  │UI                 │   │
+│  │Manager      │  │Dispatcher    │  │Controller         │   │
+│  └─────────────┘  └──────────────┘  └───────────────────┘   │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐  │
-│  │Claude       │  │Claude        │  │Claude             │  │
-│  │Instance 1   │  │Instance 2    │  │Instance N         │  │
-│  │(VT + PTY)   │  │(VT + PTY)    │  │(VT + PTY)         │  │
-│  └─────────────┘  └──────────────┘  └───────────────────┘  │
+│  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐   │
+│  │Claude       │  │Claude        │  │Claude             │   │
+│  │Instance 1   │  │Instance 2    │  │Instance N         │   │
+│  │(VT + PTY)   │  │(VT + PTY)    │  │(VT + PTY)         │   │
+│  └─────────────┘  └──────────────┘  └───────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -121,18 +121,18 @@ type ProcessEvent struct {
 
 ```
 ┌─ agentree multiplexer ─────────────────────────────────────────┐
-│ Worktrees          │ agent/feat-authentication                  │
+│ Worktrees          │ agent/feat-authentication                 │
 │ ──────────────     │ ╭─ Claude ──────────────────────────────╮ │
 │ ● auth       12.3k │ │ I'll implement the login system...    │ │
-│ ○ ui          5.2k │ ╰────────────────────────────────────────╯ │
-│ ○ api         3.1k │                                            │
-│ ○ main        1.0k │ > npm run test:auth                        │
+│ ○ ui          5.2k │ ╰───────────────────────────────────────╯ │
+│ ○ api         3.1k │                                           │
+│ ○ main        1.0k │ > npm run test:auth                       │
 │                    │   ✓ auth.test.js (5 tests passed)         │
 │ [Inactive]         │   ✓ login.test.js (3 tests passed)        │
-│ ─────────────      │                                            │
+│ ─────────────      │                                           │
 │ ✗ old-feat    dead │ Token usage: 12.3k/50k (24.6%)            │
 │                    │ Cost: $0.48 | Time: 12m 34s               │
-└────────────────────┴────────────────────────────────────────────┘
+└────────────────────┴───────────────────────────────────────────┘
  j/k:nav ↵:focus/start TAB:next q:quit r:restart x:kill ?:help
 ```
 
