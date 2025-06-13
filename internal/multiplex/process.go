@@ -81,6 +81,16 @@ func (pm *ProcessManager) AddInstance(instance *Instance) {
 	instance.done = make(chan struct{})
 	instance.TokenUsage = NewTokenTracker()
 	
+	// Add token usage listener
+	instance.TokenUsage.AddListener(func(usage TokenUsage) {
+		pm.events <- &TokenUpdateEvent{
+			BaseEvent:    BaseEvent{EventType: EventTokenUpdate, Time: time.Now()},
+			InstanceID:   instance.ID,
+			InputTokens:  usage.InputTokens,
+			OutputTokens: usage.OutputTokens,
+		}
+	})
+	
 	pm.instances[instance.ID] = instance
 	
 	// Send event

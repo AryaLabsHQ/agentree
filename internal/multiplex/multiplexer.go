@@ -11,6 +11,10 @@ import (
 type UIController interface {
 	Run(ctx context.Context) error
 	Stop()
+	AddInstance(id, worktree string)
+	UpdateInstanceState(id string, state InstanceState)
+	AddOutput(id string, data []byte)
+	UpdateTokenUsage(id string, usage TokenUsage)
 }
 
 // Multiplexer manages multiple Claude Code instances in a TUI
@@ -69,6 +73,10 @@ func (m *Multiplexer) GetEventChannel() chan<- Event {
 
 // Run starts the multiplexer and blocks until exit
 func (m *Multiplexer) Run() error {
+	if m.uiController == nil {
+		return fmt.Errorf("UI controller not set")
+	}
+	
 	// Start all components
 	m.start()
 
@@ -96,9 +104,10 @@ func (m *Multiplexer) initialize() error {
 	}
 
 	// Initialize instances for each worktree
-	for _, worktree := range m.worktrees {
+	for i, worktree := range m.worktrees {
+		instanceID := fmt.Sprintf("instance-%d", i)
 		instance := &Instance{
-			ID:       worktree, // Use worktree name as ID for now
+			ID:       instanceID,
 			Worktree: worktree,
 			State:    StateIdle,
 		}
@@ -131,6 +140,11 @@ func (m *Multiplexer) start() {
 			m.errors <- fmt.Errorf("process manager error: %w", err)
 		}
 	}()
+	
+	// Initialize UI with instances
+	for _, instance := range m.processManager.GetInstances() {
+		m.uiController.AddInstance(instance.ID, instance.Worktree)
+	}
 
 	// Start UI controller (this blocks)
 	m.wg.Add(1)
@@ -193,7 +207,29 @@ func (m *Multiplexer) registerEventHandlers() {
 
 	// Process events -> UI updates
 	m.eventDispatcher.Register(EventProcessStateChange, func(e Event) error {
-		// UI controller will handle state changes
+		if stateEvent, ok := e.(*ProcessStateEvent); ok {
+			m.uiController.UpdateInstanceState(stateEvent.InstanceID, stateEvent.NewState)
+		}
+		return nil
+	})
+	
+	// Process output -> UI
+	m.eventDispatcher.Register(EventProcessOutput, func(e Event) error {
+		if outputEvent, ok := e.(*ProcessOutputEvent); ok {
+			m.uiController.AddOutput(outputEvent.InstanceID, outputEvent.Data)
+		}
+		return nil
+	})
+	
+	// Token updates -> UI
+	m.eventDispatcher.Register(EventTokenUpdate, func(e Event) error {
+		if tokenEvent, ok := e.(*TokenUpdateEvent); ok {
+			usage := TokenUsage{
+				InputTokens:  tokenEvent.InputTokens,
+				OutputTokens: tokenEvent.OutputTokens,
+			}
+			m.uiController.UpdateTokenUsage(tokenEvent.InstanceID, usage)
+		}
 		return nil
 	})
 

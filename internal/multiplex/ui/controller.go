@@ -61,8 +61,8 @@ func NewController(screen tcell.Screen, events chan<- multiplex.Event) *Controll
 	c.width, c.height = screen.Size()
 	
 	// Create components
-	c.sidebar = NewSidebar(c.sidebarWidth, c.height)
-	c.mainView = NewMainView(c.width-c.sidebarWidth, c.height)
+	c.sidebar = NewSidebar(c.sidebarWidth, c.height-1) // Leave room for status bar
+	c.mainView = NewMainView(c.width-c.sidebarWidth, c.height-1)
 	c.statusBar = NewStatusBar(c.width)
 	
 	// Setup shortcuts
