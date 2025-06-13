@@ -51,10 +51,11 @@ ENV_SYNC_PATTERNS=.env,.env.local,.claude/settings.local.json
 
 ## Safety Features
 
-1. **Backups**: Before overwriting any file in the main worktree, a backup is created with a `.backup` extension
-2. **Skip New Files**: Files that exist only in the worktree (not in main) are skipped
-3. **Confirmation**: The remove command still asks for confirmation before removing the worktree
-4. **Verbose Mode**: Use `-v` flag to see detailed information about what's being synced
+1. **Temporary Backups**: A temporary backup is created during sync and automatically removed after successful sync
+2. **Rollback on Failure**: If sync fails, the original file is restored from the temporary backup
+3. **Skip New Files**: Files that exist only in the worktree (not in main) are skipped
+4. **Confirmation**: The remove command still asks for confirmation before removing the worktree
+5. **Verbose Mode**: Use `-v` flag to see detailed information about what's being synced
 
 ## Example Workflow
 

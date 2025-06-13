@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -96,25 +95,33 @@ func (s *EnvFileSyncer) SyncModifiedFiles() ([]string, error) {
 					mainInfo.ModTime().Format(time.RFC3339))
 			}
 			
-			// Create timestamped backup of main file
-			timestamp := time.Now().Format("20060102-150405")
-			backupPath := fmt.Sprintf("%s.backup.%s", mainPath, timestamp)
+			// Create temporary backup of main file
+			backupPath := mainPath + ".backup.tmp"
+			backupCreated := false
 			if err := s.createBackup(mainPath, backupPath); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to create backup for %s: %v\n", file, err)
 				// Continue anyway - backup is nice to have but not critical
 			} else {
-				// Clean up old backups
-				if err := s.cleanupOldBackups(mainPath); err != nil {
-					if s.verbose {
-						fmt.Fprintf(os.Stderr, "Warning: failed to clean up old backups for %s: %v\n", file, err)
-					}
-				}
+				backupCreated = true
 			}
 			
 			// Sync the file
 			if err := copyFile(worktreePath, mainPath); err != nil {
 				fmt.Fprintf(os.Stderr, "Error: failed to sync %s: %v\n", file, err)
+				// Restore from backup if sync failed and backup exists
+				if backupCreated {
+					if restoreErr := copyFile(backupPath, mainPath); restoreErr != nil {
+						fmt.Fprintf(os.Stderr, "Error: failed to restore from backup: %v\n", restoreErr)
+					}
+				}
 				continue
+			}
+			
+			// Remove temporary backup after successful sync
+			if backupCreated {
+				if err := os.Remove(backupPath); err != nil && s.verbose {
+					fmt.Fprintf(os.Stderr, "Warning: failed to remove temporary backup: %v\n", err)
+				}
 			}
 			
 			syncedFiles = append(syncedFiles, file)
@@ -150,58 +157,3 @@ func (s *EnvFileSyncer) CompareFiles(file1, file2 string) (bool, error) {
 	return string(content1) != string(content2), nil
 }
 
-// cleanupOldBackups removes backup files older than 7 days for a given file
-func (s *EnvFileSyncer) cleanupOldBackups(originalPath string) error {
-	dir := filepath.Dir(originalPath)
-	baseName := filepath.Base(originalPath)
-	backupPattern := baseName + ".backup."
-	
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return fmt.Errorf("failed to read directory: %w", err)
-	}
-	
-	sevenDaysAgo := time.Now().Add(-7 * 24 * time.Hour)
-	var removedCount int
-	
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		
-		name := entry.Name()
-		if !strings.HasPrefix(name, backupPattern) {
-			continue
-		}
-		
-		// Extract timestamp from filename
-		timeStr := strings.TrimPrefix(name, backupPattern)
-		if len(timeStr) != 15 { // Format: 20060102-150405
-			continue
-		}
-		
-		// Parse timestamp
-		backupTime, err := time.Parse("20060102-150405", timeStr)
-		if err != nil {
-			continue // Skip files with invalid timestamp format
-		}
-		
-		// Remove if older than 7 days
-		if backupTime.Before(sevenDaysAgo) {
-			backupPath := filepath.Join(dir, name)
-			if err := os.Remove(backupPath); err != nil {
-				if s.verbose {
-					fmt.Fprintf(os.Stderr, "Warning: failed to remove old backup %s: %v\n", name, err)
-				}
-			} else {
-				removedCount++
-			}
-		}
-	}
-	
-	if s.verbose && removedCount > 0 {
-		fmt.Printf("🧹 Cleaned up %d old backup(s) for %s\n", removedCount, baseName)
-	}
-	
-	return nil
-}
