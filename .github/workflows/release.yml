@@ -11,26 +11,74 @@ permissions:
 jobs:
   release:
     name: Release
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Go
-        uses: useblacksmith/setup-go@v6
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          go-version: '1.24'
+          bun-version: "1.3.10"
 
-      - name: Run tests
-        run: go test -v ./...
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+      - name: Validate
+        run: bun run check
+
+      - name: Build npm package output
+        run: bun run build
+
+      - name: Configure npm auth
+        if: ${{ secrets.NPM_TOKEN != '' }}
+        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish npm package
+        if: ${{ secrets.NPM_TOKEN != '' }}
+        run: npm publish --access public
+
+      - name: Build standalone binaries
+        run: bun run build:binaries
+
+      - name: Package release artifacts
+        run: |
+          mkdir -p release/.bunli release/src/commands
+          cp dist/darwin-arm64/cli release/agentree-darwin-arm64
+          cp dist/darwin-x64/cli release/agentree-darwin-x64
+          cp dist/linux-arm64/cli release/agentree-linux-arm64
+          cp dist/linux-x64/cli release/agentree-linux-x64
+          cp dist/windows-x64/cli.exe release/agentree-windows-x64.exe
+          cp dist/.bunli/commands.gen.ts release/.bunli/commands.gen.ts
+          cp dist/src/commands/*.js release/src/commands/
+
+          tar -czf release/agentree-darwin-arm64.tar.gz -C release agentree-darwin-arm64 .bunli src
+          tar -czf release/agentree-darwin-x64.tar.gz -C release agentree-darwin-x64 .bunli src
+          tar -czf release/agentree-linux-arm64.tar.gz -C release agentree-linux-arm64 .bunli src
+          tar -czf release/agentree-linux-x64.tar.gz -C release agentree-linux-x64 .bunli src
+          (cd release && zip -r agentree-windows-x64.zip agentree-windows-x64.exe .bunli src)
+
+          sha256sum \
+            release/agentree-darwin-arm64.tar.gz \
+            release/agentree-darwin-x64.tar.gz \
+            release/agentree-linux-arm64.tar.gz \
+            release/agentree-linux-x64.tar.gz \
+            release/agentree-windows-x64.zip \
+            > release/sha256sums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          version: latest
-          args: release --clean
+          files: |
+            release/agentree-darwin-arm64.tar.gz
+            release/agentree-darwin-x64.tar.gz
+            release/agentree-linux-arm64.tar.gz
+            release/agentree-linux-x64.tar.gz
+            release/agentree-windows-x64.zip
+            release/sha256sums.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}

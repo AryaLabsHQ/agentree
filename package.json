@@ -1,0 +1,41 @@
+{
+  "name": "agentree",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "description": "Create and manage isolated git worktrees for AI coding agents",
+  "license": "MIT",
+  "bin": {
+    "agentree": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "bunli dev --entry src/cli.ts",
+    "sync:completion-assets": "bun scripts/sync-completion-assets.ts",
+    "generate": "bunli generate --entry src/cli.ts --commandsDir src/commands --output ./.bunli/commands.gen.ts",
+    "build": "bun run generate && bunli build --entry src/cli.ts && bun run sync:completion-assets",
+    "build:binaries": "bun run generate && bunli build --entry src/cli.ts --targets darwin-arm64,darwin-x64,linux-arm64,linux-x64,windows-x64 && bun run sync:completion-assets",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "check": "bun run typecheck && bun run test"
+  },
+  "dependencies": {
+    "@bunli/core": "latest",
+    "@bunli/plugin-completions": "latest",
+    "@bunli/utils": "latest",
+    "minimatch": "^10.0.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "bunli": "latest",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  }
+}

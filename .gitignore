@@ -3,53 +3,40 @@
 .AppleDouble
 .LSOverride
 
-# Temporary files
+# Editors
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Temp
 *.tmp
 *.temp
 *.swp
 *.swo
 *~
 
-# Backup files
-*.bak
-*.backup
-
-# Editor directories and files
-.idea/
-.vscode/
-*.sublime-project
-*.sublime-workspace
-
 # Logs
 *.log
 
-# Test coverage
+# Coverage
 coverage/
-.coverage
-
-# Environment variables
-.env
-.env.local
 
 # Build outputs
 dist/
 build/
+.bunli/
+*.tsbuildinfo
 
-# Go binaries
-/agentree
-*.exe
-
-# Go test files
-coverage.out
-coverage.html
-
-# Node.js (if you add npm/pnpm tooling later)
+# Dependency directories
 node_modules/
-pnpm-lock.yaml
-package-lock.json
-yarn.lock
 
-# Python (if you add Python tooling later)
+# Environment files
+.env
+.env.local
+.dev.vars
+
+# Python caches (if used by local scripts)
 __pycache__/
 *.pyc
 *.pyo
@@ -57,10 +44,8 @@ __pycache__/
 .Python
 venv/
 
+# Local agent config
 .claude/*.local.json
 
-.env
-
-.dev.vars
-
+# Internal-only docs
 *.internal.md
