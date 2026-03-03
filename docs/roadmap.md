@@ -129,12 +129,12 @@ jobs:
 
 #### Plugin Architecture for Other Agents
 - Generic adapter interface for community contributions:
-  ```go
-  type AgentAdapter interface {
-    GenerateContext(worktree *Worktree) error
-    SetupEnvironment(worktree *Worktree) error
-    GetBranchPrefix() string
-    ValidateSetup() error
+  ```ts
+  interface AgentAdapter {
+    generateContext(worktreePath: string): Promise<void>
+    setupEnvironment(worktreePath: string): Promise<void>
+    getBranchPrefix(): string
+    validateSetup(worktreePath: string): Promise<void>
   }
   ```
 - Plugin discovery and loading
