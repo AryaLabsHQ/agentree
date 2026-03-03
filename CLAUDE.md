@@ -24,11 +24,27 @@ Entry point:
 
 - `src/cli.ts`
 
-Commands:
+Command groups:
 
-- `src/commands/new.ts` - Create worktrees with optional copy/setup/push/pr and rollback
-- `src/commands/ls.ts` - List managed workspaces
-- `src/commands/rm.ts` - Remove workspace by name/branch/path
+- `src/commands/workspace.ts` - Workspace lifecycle group
+- `src/commands/git.ts` - Git actions for workspaces
+
+Workspace commands:
+
+- `src/commands/workspace/create.ts`
+- `src/commands/workspace/list.ts`
+- `src/commands/workspace/remove.ts`
+
+Git commands:
+
+- `src/commands/git/push.ts`
+- `src/commands/git/pr.ts`
+
+Top-level aliases:
+
+- `src/commands/new.ts`
+- `src/commands/ls.ts`
+- `src/commands/rm.ts`
 
 Core libraries:
 
@@ -37,19 +53,19 @@ Core libraries:
 - `src/lib/copyIgnored.ts` - Gitignored artifact copy engine with include/exclude logic
 - `src/lib/setup.ts` - Setup command auto-detection and execution
 - `src/lib/worktree.ts` - Workspace name/path/branch helpers
-- `src/lib/output.ts` - JSON and table output
+- `src/lib/output.ts` - Versioned JSON envelope and table output
 - `src/lib/errors.ts` - Structured command and rollback errors
 - `src/lib/types.ts` - Shared types
 
 ## Testing Approach
 
 - Unit tests in `test/*.test.ts`
-- Integration rollback behavior in `test/new.rollback.integration.test.ts`
+- Integration tests for workspace command behavior and rollback semantics
 - Tests use temporary git repositories and Bun test runner
 
 ## Current CLI Surface
 
-- `agentree new`
-- `agentree ls`
-- `agentree rm`
+- `agentree workspace create|list|remove`
+- `agentree git push|pr`
+- `agentree new|ls|rm` (top-level aliases)
 - `agentree completions`

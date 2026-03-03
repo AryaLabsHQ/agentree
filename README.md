@@ -24,39 +24,52 @@ bun run build
 Create a workspace:
 
 ```bash
+agentree workspace create fix-auth
+# alias
 agentree new fix-auth
 ```
 
 List workspaces:
 
 ```bash
+agentree workspace list
+# alias
 agentree ls
 ```
 
 Remove a workspace:
 
 ```bash
+agentree workspace remove fix-auth --yes --deleteBranch
+# alias
 agentree rm fix-auth --yes --deleteBranch
+```
+
+Push and open PR explicitly:
+
+```bash
+agentree git push fix-auth
+agentree git pr fix-auth
 ```
 
 ## Commands
 
-Create workspace:
+Primary grouped commands:
 
 ```bash
-agentree new <name> [--from <ref>] [--dest <path>] [--push=true] [--pr=true]
+agentree workspace create <name> [--from <ref>] [--dest <path>] [--interactive] [--json]
+agentree workspace list [--all] [--json]
+agentree workspace remove <name|branch|path> [--yes] [--deleteBranch] [--json]
+agentree git push <name|branch|path> [--remote <name>] [--json]
+agentree git pr <name|branch|path> [--json]
 ```
 
-List workspaces:
+Top-level aliases:
 
 ```bash
-agentree ls [--all] [--json]
-```
-
-Remove workspace:
-
-```bash
-agentree rm <name|branch|path> [--yes] [--deleteBranch] [--json]
+agentree new <name>
+agentree ls
+agentree rm <name|branch|path>
 ```
 
 Shell completions:
@@ -65,19 +78,16 @@ Shell completions:
 agentree completions <bash|zsh|fish|powershell>
 ```
 
-Interactive creation:
+## JSON Output Contract
 
-```bash
-agentree new --interactive
-```
+Every `--json` response uses a versioned envelope:
 
-JSON output:
-
-```bash
-agentree new feature-a --json
-agentree ls --json
-agentree rm feature-a --yes --json
-```
+- `schemaVersion`
+- `ok`
+- `command`
+- `data`
+- `warnings`
+- `error` (only when `ok=false`)
 
 ## Configuration
 
@@ -121,6 +131,18 @@ Config precedence:
 3. Global config (`~/.config/agentree/config.json`)
 4. Built-in defaults
 
+`workspace list` and `workspace remove` always use merged `branchPrefix` from this config chain.
+
+## Remove Target Resolution
+
+`workspace remove <target>` resolves in deterministic order:
+
+1. Workspace name
+2. Full branch name
+3. Filesystem path
+
+This prevents path collisions from overriding a workspace-name match.
+
 ## Setup Detection
 
 When `setupEnabled` is `true` and `setupMode` is `"auto-install"`, agentree detects and runs:
@@ -134,15 +156,14 @@ When `setupEnabled` is `true` and `setupMode` is `"auto-install"`, agentree dete
 - `pip install -r requirements.txt` for `requirements.txt`
 - `bundle install` for `Gemfile.lock`
 
+Setup command execution is platform-aware (`sh -lc` on Unix-like platforms, `cmd.exe /d /s /c` on Windows).
+
 ## Breaking Changes
 
-Legacy interface replacements:
-
-- `agentree -b <name>` -> `agentree new <name>`
-- `agentree -i` -> `agentree new --interactive`
-- `agentree rm agent/<name> -R` -> `agentree rm <name> --deleteBranch`
-- `agentree completion <shell>` -> `agentree completions <shell>`
-- `.agentreerc` shell config -> `.agentree/config.json`
+- `workspace create` no longer supports `--push` / `--pr` side effects.
+- Push and PR are explicit commands: `git push` and `git pr`.
+- Grouped command model is primary (`workspace *`, `git *`).
+- Top-level `new|ls|rm` remain aliases for workspace lifecycle.
 
 ## Development
 
