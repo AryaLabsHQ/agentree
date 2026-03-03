@@ -47,20 +47,18 @@ jobs:
 
       - name: Package release artifacts
         run: |
-          mkdir -p release/.bunli release/src/commands
+          mkdir -p release
           cp dist/darwin-arm64/cli release/agentree-darwin-arm64
           cp dist/darwin-x64/cli release/agentree-darwin-x64
           cp dist/linux-arm64/cli release/agentree-linux-arm64
           cp dist/linux-x64/cli release/agentree-linux-x64
           cp dist/windows-x64/cli.exe release/agentree-windows-x64.exe
-          cp dist/.bunli/commands.gen.ts release/.bunli/commands.gen.ts
-          cp dist/src/commands/*.js release/src/commands/
 
-          tar -czf release/agentree-darwin-arm64.tar.gz -C release agentree-darwin-arm64 .bunli src
-          tar -czf release/agentree-darwin-x64.tar.gz -C release agentree-darwin-x64 .bunli src
-          tar -czf release/agentree-linux-arm64.tar.gz -C release agentree-linux-arm64 .bunli src
-          tar -czf release/agentree-linux-x64.tar.gz -C release agentree-linux-x64 .bunli src
-          (cd release && zip -r agentree-windows-x64.zip agentree-windows-x64.exe .bunli src)
+          tar -czf release/agentree-darwin-arm64.tar.gz -C release agentree-darwin-arm64
+          tar -czf release/agentree-darwin-x64.tar.gz -C release agentree-darwin-x64
+          tar -czf release/agentree-linux-arm64.tar.gz -C release agentree-linux-arm64
+          tar -czf release/agentree-linux-x64.tar.gz -C release agentree-linux-x64
+          (cd release && zip -r agentree-windows-x64.zip agentree-windows-x64.exe)
 
           sha256sum \
             release/agentree-darwin-arm64.tar.gz \

@@ -15,10 +15,9 @@
   ],
   "scripts": {
     "dev": "bunli dev --entry src/cli.ts",
-    "sync:completion-assets": "bun scripts/sync-completion-assets.ts",
     "generate": "bunli generate --entry src/cli.ts --commandsDir src/commands --output ./.bunli/commands.gen.ts",
-    "build": "bun run generate && bunli build --entry src/cli.ts && bun run sync:completion-assets",
-    "build:binaries": "bun run generate && bunli build --entry src/cli.ts --targets darwin-arm64,darwin-x64,linux-arm64,linux-x64,windows-x64 && bun run sync:completion-assets",
+    "build": "bun run generate && bunli build --entry src/cli.ts",
+    "build:binaries": "bun run generate && bunli build --entry src/cli.ts --targets darwin-arm64,darwin-x64,linux-arm64,linux-x64,windows-x64",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "check": "bun run typecheck && bun run test"
