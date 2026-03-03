@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { mkdir, writeFile, rm } from 'node:fs/promises'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { resolveConfig } from '../src/lib/config.js'
 
@@ -38,10 +38,6 @@ describe('config resolution', () => {
   test('project overrides global, flags override project', async () => {
     const repoRoot = join(tempBase, 'repo')
     const resolved = await resolveConfig(repoRoot, {
-      push: false,
-      pr: false,
-      interactive: false,
-      json: false,
       strict: true,
       include: '.env',
       exclude: '.tmp'
