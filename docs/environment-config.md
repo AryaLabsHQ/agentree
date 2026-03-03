@@ -1,67 +1,88 @@
 # Environment Configuration
 
-agentree intelligently discovers and copies environment files based on `.gitignore` patterns, with support for monorepos and AI tool configurations.
+`agentree` copies ignored artifacts from the source repository into a new workspace, with configurable include and exclude behavior.
 
 ## How It Works
 
-1. Parses all `.gitignore` files in your repository
-2. Identifies environment-related patterns (`.env`, `local`, `secret`, etc.)
-3. Finds matching files and copies them to the new worktree
-4. Includes AI tool configs (`.claude/settings.local.json`, `.cursorrules`, etc.)
+1. Lists ignored files with `git ls-files --others -i --exclude-standard`.
+2. Applies excludes from config (`defaultExcludes` + `extraExcludes`).
+3. Re-includes matching paths from `extraIncludes`.
+4. Copies remaining files to the destination worktree.
+5. Skips destination collisions (`skip-existing` behavior).
 
-## Configuration
+## Config Files
 
-### Project Config (.agentreerc)
+Project config:
 
-```bash
-# Additional patterns to include
-ENV_INCLUDE_PATTERNS=(
-  "*.env.example"
-  "config/*.sample"
-)
-
-# Patterns to exclude
-ENV_EXCLUDE_PATTERNS=(
-  "*.test.env"
-  "node_modules/**/.env"
-)
+```text
+.agentree/config.json
 ```
 
-### Global Config (~/.config/agentree/config)
+Global config:
+
+```text
+~/.config/agentree/config.json
+```
+
+## Config Keys
+
+```json
+{
+  "copyIgnoredEnabled": true,
+  "defaultExcludes": [
+    ".git/",
+    "node_modules/",
+    ".venv/",
+    "vendor/bundle/"
+  ],
+  "extraIncludes": [".env", ".dev.vars"],
+  "extraExcludes": ["*.tmp", ".cache/"]
+}
+```
+
+## CLI Overrides
+
+Include extra patterns for a single run:
 
 ```bash
-# Comma-separated patterns
-ENV_INCLUDE_PATTERNS=.env.global,.company-secrets
-ENV_EXCLUDE_PATTERNS=*.backup,*.tmp
+agentree new feature-a --include=.env,.dev.vars
+```
+
+Exclude extra patterns for a single run:
+
+```bash
+agentree new feature-a --exclude=.cache/,*.tmp
+```
+
+Disable copying for a single run:
+
+```bash
+agentree new feature-a --copyIgnored=false
 ```
 
 ## Examples
 
+Basic create:
+
 ```bash
-# Basic usage - auto-discovers from .gitignore
-agentree create -b feature/new-api
-
-# Disable environment copying
-agentree create -b feature/test -e=false
-
-# Debug discovery process
-agentree create -b feature/debug -v
+agentree new feature/new-api
 ```
 
-## Supported Files
+Create with JSON output:
 
-- **Auto-detected**: Files in `.gitignore` containing keywords like `.env`, `local`, `secret`
-- **AI configs**: `.claude/settings.local.json`, `.cursorrules`, `.github/copilot/config.json`
-- **Monorepo**: Recursive patterns like `**/.env`, `packages/*/.env`
+```bash
+agentree new feature/new-api --json
+```
 
 ## Troubleshooting
 
-- **No files copied?** Check if files exist and are in `.gitignore`
-- **Too many files?** Add exclude patterns to `.agentreerc`
-- **Debug mode**: Use `-v` flag to see discovery details
+No files copied:
 
-## Best Practices
+- Confirm files are ignored by git.
+- Confirm `copyIgnoredEnabled` is true.
+- Confirm excludes are not filtering your target file.
 
-1. Add environment files to `.gitignore` for automatic discovery
-2. Use `.env.local` for machine-specific settings
-3. Keep AI configs like `.claude/settings.local.json` for project context
+Unexpected files copied:
+
+- Add patterns to `extraExcludes`.
+- Remove broad patterns from `extraIncludes`.

@@ -1,246 +1,159 @@
-# agentree 🌳🤖
+# agentree
 
-Run multiple AI coding agents without them fighting over files.
+`agentree` creates and manages isolated git worktrees for parallel AI-agent coding workflows.
 
-## The Problem
-
-Want to run Claude in multiple terminals? They'll overwrite each other's changes.
-
-Git worktrees could help, but setting them up is painful:
-- Create the worktree manually
-- Copy over `.env` files
-- Don't forget `.env.local`, `.dev.vars`...
-- Install dependencies again
-- Copy `.claude/settings.local.json`
-- 10 minutes later, you're finally ready
-
-## The Solution
-
-```bash
-agentree -b new-feature
-```
-
-One command gives you:
-- ✓ New branch (`agent/new-feature`)
-- ✓ Isolated worktree in `../myrepo-worktrees/`
-- ✓ All env files copied automatically
-- ✓ Dependencies installed
-- ✓ Ready to code in seconds
+This branch is a full rewrite on Bun + TypeScript + Bunli. Backward compatibility with the legacy Go/bash CLI is intentionally removed.
 
 ## Install
 
 ```bash
-brew tap AryaLabsHQ/tap
-brew install AryaLabsHQ/tap/agentree
+npm install -g agentree
 ```
 
-## Quick Start
-
-Run multiple AI agents in parallel:
-
-```bash
-# Terminal 1: Claude working on auth
-agentree -b fix-auth
-
-# Terminal 2: Another Claude on UI bugs  
-agentree -b ui-fixes
-
-# Terminal 3: Cursor adding tests
-agentree -b add-tests
-```
-
-Each agent works in isolation. No conflicts. Pure productivity.
-
-## How It Works
-
-1. **Interactive mode** (recommended):
-   ```bash
-   agentree -i
-   ```
-   Guides you through branch creation with all options.
-
-2. **Quick mode**:
-   ```bash
-   agentree -b feature-name
-   ```
-   Creates worktree with smart defaults.
-
-3. **Cleanup**:
-   ```bash
-   agentree rm agent/feature-name
-   ```
-   Removes worktree when you're done.
-
-## Real World Example
-
-Here's my actual workflow from last week:
-
-```bash
-# 9:00 AM - Start refactoring auth
-agentree -b refactor-auth
-# Let Claude work on this big task...
-
-# 9:05 AM - Meanwhile, fix that urgent bug
-agentree -b fix-login-bug
-# Different Claude instance handles it
-
-# 9:10 AM - Update docs while waiting
-agentree -b update-api-docs
-
-# 11:00 AM - Review all three PRs separately
-```
-
-<details>
-<summary><strong>📚 Advanced Usage</strong></summary>
-
-### Flags & Options
-
-```bash
-# Create from specific base branch
-agentree -b feature-x -f main
-
-# Skip environment file copying
-agentree -b feature-x -e=false
-
-# Skip auto-setup (dependency installation)
-agentree -b feature-x -s=false
-
-# Push to remote after creation
-agentree -b feature-x -p
-
-# Create and open PR
-agentree -b feature-x -r
-
-# Custom destination
-agentree -b feature-x -d ~/custom-dir
-
-# Remove worktree and delete branch
-agentree rm agent/feature-x -R
-```
-
-### Configuration
-
-Create `.agentreerc` in your project:
-
-```bash
-# .agentreerc
-POST_CREATE_SCRIPTS=(
-  "pnpm install"
-  "pnpm build"
-  "cp .env.example .env"
-)
-```
-
-### Auto-Detection
-
-Agentree automatically detects and runs the right setup:
-- **pnpm/npm/yarn**: Installs dependencies + build
-- **cargo**: Runs `cargo build`
-- **pip**: Installs from requirements.txt
-- **go**: Downloads modules
-
-</details>
-
-<details>
-<summary><strong>🛠️ Installation Options</strong></summary>
-
-### macOS/Linux Binary
-
-```bash
-# Download latest release
-curl -L https://github.com/AryaLabsHQ/agentree/releases/latest/download/agentree-$(uname -s)-$(uname -m) -o agentree
-chmod +x agentree
-sudo mv agentree /usr/local/bin/
-```
-
-### From Source
+Or from source:
 
 ```bash
 git clone https://github.com/AryaLabsHQ/agentree.git
 cd agentree
-make build
-make install
+bun install
+bun run build
 ```
 
-### Shell Completion
+## Quick Start
 
-<details>
-<summary>Bash</summary>
+Create a workspace:
 
 ```bash
-echo 'source <(agentree completion bash)' >> ~/.bashrc
+agentree new fix-auth
 ```
-</details>
 
-<details>
-<summary>Zsh</summary>
+List workspaces:
 
 ```bash
-echo 'source <(agentree completion zsh)' >> ~/.zshrc
+agentree ls
 ```
-</details>
 
-<details>
-<summary>Fish</summary>
+Remove a workspace:
 
 ```bash
-agentree completion fish > ~/.config/fish/completions/agentree.fish
+agentree rm fix-auth --yes --deleteBranch
 ```
-</details>
 
-</details>
+## Commands
 
-<details>
-<summary><strong>🤔 FAQ</strong></summary>
+Create workspace:
 
-**Q: What's the difference between this and regular git worktrees?**
+```bash
+agentree new <name> [--from <ref>] [--dest <path>] [--push=true] [--pr=true]
+```
 
-A: Agentree handles all the setup that git doesn't:
-- Copies your environment files
-- Installs dependencies
-- Copies AI tool configurations
-- Does it all in one command
+List workspaces:
 
-**Q: Which AI tools does this work with?**
+```bash
+agentree ls [--all] [--json]
+```
 
-A: Any tool that edits code! Tested with:
-- Claude Code (what I built it for)
-- Cursor
-- GitHub Copilot
-- Cody
-- Continue
-- Any future AI coding tool
+Remove workspace:
 
-**Q: Can I use custom branch prefixes?**
+```bash
+agentree rm <name|branch|path> [--yes] [--deleteBranch] [--json]
+```
 
-A: Not yet, but it's on the roadmap. Currently uses `agent/` prefix.
+Shell completions:
 
-**Q: Does it work with monorepos?**
+```bash
+agentree completions <bash|zsh|fish|powershell>
+```
 
-A: Yes! Run agentree from any subdirectory.
+Interactive creation:
 
-</details>
+```bash
+agentree new --interactive
+```
 
-## Why I Built This
+JSON output:
 
-I switched from Cursor to Claude Code to save money, but Claude is *slow*. Like, really slow. 10-minute waits for complex refactors.
+```bash
+agentree new feature-a --json
+agentree ls --json
+agentree rm feature-a --yes --json
+```
 
-So I started running multiple instances. But they kept overwriting each other's work. Git worktrees seemed perfect, but the manual setup was killing my productivity.
+## Configuration
 
-Agentree was born from frustration. Now I run 4-5 Claude instances in parallel, each on their own branch, with zero conflicts.
+Project config path:
 
-[Read the full story →](https://www.saatvikarya.com/agentree)
+```text
+.agentree/config.json
+```
 
-## Contributing
+Global config path:
 
-Found a bug? Have an idea? PRs welcome!
+```text
+~/.config/agentree/config.json
+```
 
-See something that could be better? [Open an issue](https://github.com/AryaLabsHQ/agentree/issues).
+Example:
+
+```json
+{
+  "branchPrefix": "agent/",
+  "copyIgnoredEnabled": true,
+  "defaultExcludes": [
+    ".git/",
+    "node_modules/",
+    ".venv/"
+  ],
+  "extraIncludes": [".env"],
+  "extraExcludes": [".cache/"],
+  "setupEnabled": true,
+  "setupMode": "auto-install",
+  "setupScripts": [],
+  "strictDefault": true,
+  "rollbackOnFailDefault": true
+}
+```
+
+Config precedence:
+
+1. CLI flags
+2. Project config (`.agentree/config.json`)
+3. Global config (`~/.config/agentree/config.json`)
+4. Built-in defaults
+
+## Setup Detection
+
+When `setupEnabled` is `true` and `setupMode` is `"auto-install"`, agentree detects and runs:
+
+- `bun install` for `bun.lock` or `bun.lockb`
+- `pnpm install` for `pnpm-lock.yaml`
+- `npm install` for `package-lock.json`
+- `yarn install` for `yarn.lock`
+- `cargo build` for `Cargo.lock`
+- `go mod download` for `go.mod`
+- `pip install -r requirements.txt` for `requirements.txt`
+- `bundle install` for `Gemfile.lock`
+
+## Breaking Changes
+
+Legacy interface replacements:
+
+- `agentree -b <name>` -> `agentree new <name>`
+- `agentree -i` -> `agentree new --interactive`
+- `agentree rm agent/<name> -R` -> `agentree rm <name> --deleteBranch`
+- `agentree completion <shell>` -> `agentree completions <shell>`
+- `.agentreerc` shell config -> `.agentree/config.json`
+
+## Development
+
+```bash
+bun run generate
+bun run typecheck
+bun test
+bun run build
+bun run build:binaries
+```
 
 ## License
 
 MIT
-
----
-
-Built with ❤️ and frustration by [@aryasaatvik](https://x.com/aryasaatvik)
