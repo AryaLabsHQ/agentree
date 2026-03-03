@@ -16,18 +16,39 @@ export interface AgentreeConfig {
   completionEnabled: boolean
 }
 
-export interface NewCommandFlags {
-  from?: string
-  dest?: string
-  push: boolean
-  pr: boolean
-  interactive: boolean
-  json: boolean
+export interface ConfigOverrideFlags {
   copyIgnored?: boolean
   strict?: boolean
   rollbackOnFail?: boolean
   include?: string
   exclude?: string
+}
+
+export interface WorkspaceCreateFlags extends ConfigOverrideFlags {
+  from?: string
+  dest?: string
+  interactive: boolean
+  json: boolean
+}
+
+export interface WorkspaceListFlags {
+  json: boolean
+  all: boolean
+}
+
+export interface WorkspaceRemoveFlags {
+  yes: boolean
+  deleteBranch: boolean
+  json: boolean
+}
+
+export interface GitPushFlags {
+  remote: string
+  json: boolean
+}
+
+export interface GitPrFlags {
+  json: boolean
 }
 
 export interface CreateStepSummary {
@@ -40,13 +61,6 @@ export interface CreateStepSummary {
   setup?: {
     commands: string[]
     completed: number
-  }
-  push?: {
-    remote: string
-    branch: string
-  }
-  pr?: {
-    created: boolean
   }
 }
 

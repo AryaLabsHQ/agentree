@@ -133,6 +133,24 @@ function normalizePath(path: string): string {
   return absolute
 }
 
+function branchForWorkspaceName(branchPrefix: string, workspaceName: string): string {
+  return `${branchPrefix}${workspaceName}`
+}
+
+function parseWorkspaceName(target: string, branchPrefix: string): string | null {
+  if (target.startsWith(branchPrefix)) {
+    const name = target.slice(branchPrefix.length)
+    return name.length > 0 ? name : null
+  }
+
+  if (!target.includes('/')) {
+    return target
+  }
+
+  return null
+}
+
+// Deterministic resolution order: name -> branch -> path.
 export function findWorktreeByTarget(
   repoRoot: string,
   target: string,
@@ -140,15 +158,24 @@ export function findWorktreeByTarget(
 ): WorktreeInfo | undefined {
   const worktrees = listWorktrees(repoRoot)
 
+  const workspaceName = parseWorkspaceName(target, branchPrefix)
+  if (workspaceName) {
+    const nameBranch = branchForWorkspaceName(branchPrefix, workspaceName)
+    const byName = worktrees.find((wt) => wt.branch === nameBranch)
+    if (byName) {
+      return byName
+    }
+  }
+
+  const byBranch = worktrees.find((wt) => wt.branch === target)
+  if (byBranch) {
+    return byBranch
+  }
+
   if (existsSync(target)) {
     const normalizedTarget = normalizePath(target)
     return worktrees.find((wt) => normalizePath(wt.path) === normalizedTarget)
   }
 
-  const branchCandidates = [target]
-  if (!target.includes('/')) {
-    branchCandidates.push(`${branchPrefix}${target}`)
-  }
-
-  return worktrees.find((wt) => wt.branch && branchCandidates.includes(wt.branch))
+  return undefined
 }

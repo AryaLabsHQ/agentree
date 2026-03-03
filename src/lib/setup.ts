@@ -7,6 +7,11 @@ export interface SetupSummary {
   completed: number
 }
 
+export interface ScriptShell {
+  command: string
+  args: string[]
+}
+
 function hasBuildScript(dir: string): boolean {
   const packageJsonPath = join(dir, 'package.json')
   if (!existsSync(packageJsonPath)) return false
@@ -18,6 +23,20 @@ function hasBuildScript(dir: string): boolean {
     return Boolean(parsed.scripts?.build)
   } catch {
     return false
+  }
+}
+
+export function resolveScriptShell(platform: NodeJS.Platform = process.platform): ScriptShell {
+  if (platform === 'win32') {
+    return {
+      command: 'cmd.exe',
+      args: ['/d', '/s', '/c']
+    }
+  }
+
+  return {
+    command: 'sh',
+    args: ['-lc']
   }
 }
 
@@ -58,15 +77,18 @@ export function detectSetupCommands(dir: string): string[] {
 }
 
 function runScript(cwd: string, script: string): void {
+  const shell = resolveScriptShell()
+  const args = [...shell.args, script]
+
   const proc = Bun.spawnSync({
-    cmd: ['sh', '-lc', script],
+    cmd: [shell.command, ...args],
     cwd,
     stdout: 'inherit',
     stderr: 'inherit'
   })
 
   if ((proc.exitCode ?? 1) !== 0) {
-    throw new CommandExecutionError('sh', ['-lc', script], proc.exitCode ?? 1, '', '')
+    throw new CommandExecutionError(shell.command, args, proc.exitCode ?? 1, '', '')
   }
 }
 

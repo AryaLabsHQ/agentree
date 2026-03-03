@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { mkdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { AgentreeConfig, NewCommandFlags } from './types.js'
+import type { AgentreeConfig, ConfigOverrideFlags } from './types.js'
 
 export const DEFAULT_DEPENDENCY_EXCLUDES = [
   '.git/',
@@ -71,7 +71,7 @@ function parseCsv(value?: string): string[] {
 
 export async function resolveConfig(
   repoRoot: string,
-  flags: NewCommandFlags
+  flags: ConfigOverrideFlags
 ): Promise<{
   config: AgentreeConfig
   strict: boolean
